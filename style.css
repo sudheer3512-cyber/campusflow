@@ -48,7 +48,6 @@ body {
     min-height: 100vh;
 }
 
-/* Sidebar */
 .sidebar {
     width: var(--sidebar-width);
     background-color: var(--bg-sidebar);
@@ -59,7 +58,6 @@ body {
     position: fixed;
     height: 100vh;
     z-index: 100;
-    transition: background 0.3s;
 }
 
 .logo-area {
@@ -70,10 +68,6 @@ body {
     color: var(--primary);
     font-size: 1.25rem;
     font-weight: 800;
-}
-
-.logo-area i {
-    font-size: 1.5rem;
 }
 
 .nav-links {
@@ -120,14 +114,8 @@ body {
     justify-content: center;
     gap: 8px;
     font-weight: 600;
-    transition: background 0.2s;
 }
 
-.btn-theme:hover {
-    background: var(--border-color);
-}
-
-/* Main Content */
 .main-content {
     flex: 1;
     margin-left: var(--sidebar-width);
@@ -199,7 +187,6 @@ body {
     color: var(--text-muted);
 }
 
-/* Buttons */
 .btn-primary {
     background-color: var(--primary);
     color: white;
@@ -211,12 +198,6 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: background 0.2s;
-    font-size: 0.9rem;
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-hover);
 }
 
 .btn-secondary {
@@ -230,12 +211,6 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: background 0.2s;
-    font-size: 0.9rem;
-}
-
-.btn-secondary:hover {
-    background-color: var(--border-color);
 }
 
 .btn-lg {
@@ -243,7 +218,6 @@ body {
     font-size: 1.1rem;
 }
 
-/* Tabs */
 .tab-content {
     padding: 32px;
     flex: 1;
@@ -251,19 +225,12 @@ body {
 
 .tab-pane {
     display: none;
-    animation: fadeIn 0.3s ease-in-out;
 }
 
 .tab-pane.active {
     display: block;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Welcome Banner */
 .welcome-banner {
     background: linear-gradient(135deg, var(--primary), #818cf8);
     color: white;
@@ -273,16 +240,6 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 32px;
-    box-shadow: var(--shadow);
-}
-
-.welcome-banner h1 {
-    font-size: 1.8rem;
-    margin-bottom: 6px;
-}
-
-.welcome-banner p {
-    opacity: 0.9;
 }
 
 .date-badge {
@@ -293,10 +250,8 @@ body {
     align-items: center;
     gap: 8px;
     font-weight: 600;
-    backdrop-filter: blur(5px);
 }
 
-/* Metrics Grid */
 .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -312,7 +267,6 @@ body {
     display: flex;
     align-items: center;
     gap: 16px;
-    box-shadow: var(--shadow);
 }
 
 .metric-icon {
@@ -333,16 +287,13 @@ body {
 .metric-info h3 {
     font-size: 0.85rem;
     color: var(--text-muted);
-    font-weight: 600;
 }
 
 .metric-info p {
     font-size: 1.5rem;
     font-weight: 800;
-    margin-top: 2px;
 }
 
-/* Dashboard Grid */
 .dash-grid {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -354,7 +305,6 @@ body {
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     padding: 24px;
-    box-shadow: var(--shadow);
 }
 
 .card-header {
@@ -362,13 +312,6 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-}
-
-.card-header h3 {
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
 .badge {
@@ -380,7 +323,6 @@ body {
     font-weight: 700;
 }
 
-/* Focus List */
 .focus-list {
     display: flex;
     flex-direction: column;
@@ -397,17 +339,6 @@ body {
     border-radius: var(--radius);
 }
 
-.focus-item-details h4 {
-    font-size: 0.95rem;
-    font-weight: 600;
-}
-
-.focus-item-details span {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-/* Subject Load Bars */
 .subject-bars {
     display: flex;
     flex-direction: column;
@@ -434,10 +365,8 @@ body {
     height: 100%;
     background: var(--primary);
     border-radius: 4px;
-    transition: width 0.4s ease;
 }
 
-/* Section Header */
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -445,22 +374,6 @@ body {
     margin-bottom: 24px;
 }
 
-.section-header h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-}
-
-.section-header p {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-}
-
-.balancer-actions {
-    display: flex;
-    gap: 12px;
-}
-
-/* Advanced Workload Balancer */
 .balancer-container {
     display: flex;
     flex-direction: column;
@@ -491,10 +404,6 @@ body {
     margin-bottom: 6px;
 }
 
-.alert-title-row h4 {
-    font-size: 1.05rem;
-}
-
 .weekly-load-badge {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -502,12 +411,6 @@ body {
     border-radius: 20px;
     font-size: 0.8rem;
     font-weight: 600;
-}
-
-.alert-content p {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-bottom: 12px;
 }
 
 .capacity-bar-container {
@@ -523,7 +426,6 @@ body {
     height: 100%;
     background: var(--success);
     border-radius: 5px;
-    transition: width 0.4s ease, background-color 0.4s ease;
 }
 
 .overload-alert-card.warning {
@@ -563,21 +465,11 @@ body {
     margin-bottom: 12px;
 }
 
-.day-header h4 {
-    font-size: 0.95rem;
-    font-weight: 700;
-}
-
 .day-header .day-meta-info {
     display: flex;
     justify-content: center;
     gap: 8px;
     margin-top: 4px;
-}
-
-.day-header span {
-    font-size: 0.75rem;
-    color: var(--text-muted);
 }
 
 .day-status-pill {
@@ -615,10 +507,6 @@ body {
     align-items: center;
 }
 
-.advanced-task-top strong {
-    font-size: 0.85rem;
-}
-
 .shift-day-select {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -630,7 +518,6 @@ body {
     cursor: pointer;
 }
 
-/* Kanban Board */
 .kanban-board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -660,13 +547,6 @@ body {
 .kanban-header.in-progress { border-top: 4px solid var(--primary); }
 .kanban-header.completed { border-top: 4px solid var(--success); }
 
-.kanban-header .count {
-    background: var(--bg-main);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.8rem;
-}
-
 .kanban-tasks {
     padding: 16px;
     flex: 1;
@@ -681,13 +561,6 @@ body {
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     padding: 16px;
-    cursor: grab;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.kanban-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow);
 }
 
 .kanban-card-top {
@@ -706,20 +579,9 @@ body {
     border-radius: 6px;
 }
 
-.tag-priority {
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
-}
 .tag-priority.High { background: #fee2e2; color: #dc2626; }
 .tag-priority.Medium { background: #fef3c7; color: #d97706; }
 .tag-priority.Low { background: #d1fae5; color: #059669; }
-
-.kanban-card h4 {
-    font-size: 0.95rem;
-    margin-bottom: 8px;
-}
 
 .kanban-card-footer {
     display: flex;
@@ -739,11 +601,8 @@ body {
     border: none;
     cursor: pointer;
     color: var(--text-muted);
-    font-size: 0.85rem;
 }
-.kanban-actions button:hover { color: var(--primary); }
 
-/* Pomodoro */
 .pomodoro-wrapper {
     display: flex;
     justify-content: center;
@@ -758,7 +617,6 @@ body {
     padding: 48px;
     text-align: center;
     width: 460px;
-    box-shadow: var(--shadow);
 }
 
 .pomo-modes {
@@ -780,7 +638,6 @@ body {
     font-weight: 600;
     cursor: pointer;
     color: var(--text-muted);
-    transition: all 0.2s;
 }
 
 .pomo-mode-btn.active {
@@ -803,20 +660,6 @@ body {
     margin-bottom: 32px;
 }
 
-.pomo-task-assign {
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.pomo-task-assign label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-/* Study Rooms */
 .rooms-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -842,12 +685,8 @@ body {
     padding: 8px 12px;
     border-radius: 8px;
     font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
-/* GPA Simulator */
 .gpa-container {
     display: flex;
     justify-content: center;
@@ -871,20 +710,13 @@ body {
     gap: 4px;
 }
 
-.gpa-big-score small {
-    font-size: 1rem;
-    color: var(--text-muted);
-    font-weight: 600;
-}
-
-/* Analytics */
 .analytics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 24px;
 }
 
-.analytics-stat-row {
+.analytics-stat-row, .leaderboard-row {
     display: flex;
     justify-content: space-between;
     padding: 12px 0;
@@ -892,15 +724,6 @@ body {
     font-size: 0.95rem;
 }
 
-.leaderboard-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    font-size: 0.95rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-/* Modal */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -915,7 +738,6 @@ body {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s;
-    backdrop-filter: blur(4px);
 }
 
 .modal-overlay.active {
@@ -930,13 +752,6 @@ body {
     width: 500px;
     max-width: 90%;
     padding: 32px;
-    box-shadow: var(--shadow);
-    transform: translateY(20px);
-    transition: transform 0.3s;
-}
-
-.modal-overlay.active .modal {
-    transform: translateY(0);
 }
 
 .modal-header {
@@ -967,12 +782,6 @@ body {
     gap: 16px;
 }
 
-.form-group label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
 .form-control {
     padding: 10px 14px;
     background: var(--bg-main);
@@ -980,11 +789,6 @@ body {
     border-radius: var(--radius);
     color: var(--text-main);
     font-size: 0.95rem;
-    outline: none;
-}
-
-.form-control:focus {
-    border-color: var(--primary);
 }
 
 .modal-footer {
@@ -994,12 +798,9 @@ body {
     margin-top: 24px;
 }
 
-/* Responsive */
 @media(max-width: 992px) {
     .sidebar { width: 80px; }
     .sidebar .logo-area h2, .sidebar .nav-item span, .sidebar-footer span { display: none; }
     .main-content { margin-left: 80px; }
-    .dash-grid { grid-template-columns: 1fr; }
-    .kanban-board { grid-template-columns: 1fr; }
-    .week-distribution-grid { grid-template-columns: 1fr; }
+    .dash-grid, .kanban-board, .week-distribution-grid { grid-template-columns: 1fr; }
 }
