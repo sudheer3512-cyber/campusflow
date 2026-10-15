@@ -116,28 +116,40 @@
                     </div>
                 </section>
 
-                <!-- 2. WORKLOAD BALANCER TAB -->
+                <!-- 2. ADVANCED WORKLOAD BALANCER TAB -->
                 <section id="balancer" class="tab-pane">
                     <div class="section-header">
                         <div>
-                            <h2>Workload Balancer & Scheduler</h2>
-                            <p>Prevent burnout by evenly distributing your assignments across upcoming days.</p>
+                            <h2>Advanced Workload Balancer & Scheduler</h2>
+                            <p>Monitor burnout risk, adjust daily study caps, and intelligently shift tasks across the week.</p>
                         </div>
-                        <button class="btn-secondary" id="autoBalanceBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Balance Overload</button>
+                        <div class="balancer-actions">
+                            <button class="btn-secondary" id="optimizerSettingsBtn"><i class="fa-solid fa-sliders"></i> Set Max Daily Cap (<span id="maxCapDisplay">5</span>h)</button>
+                            <button class="btn-primary" id="autoBalanceBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Smart Auto-Balance</button>
+                        </div>
                     </div>
 
                     <div class="balancer-container">
+                        <!-- Advanced Burnout Gauge Card -->
                         <div class="card overload-alert-card" id="overloadAlertCard">
-                            <i class="fa-solid fa-shield-heart"></i>
-                            <div>
-                                <h4>Workload Status: <span id="balancerStatusTitle">Optimal</span></h4>
-                                <p id="balancerStatusDesc">Your daily study hours are within a healthy, sustainable threshold (&lt; 5h/day).</p>
+                            <div class="alert-icon-box">
+                                <i class="fa-solid fa-shield-heart" id="balancerAlertIcon"></i>
+                            </div>
+                            <div class="alert-content">
+                                <div class="alert-title-row">
+                                    <h4>Workload Status: <span id="balancerStatusTitle">Optimal</span></h4>
+                                    <span class="weekly-load-badge" id="weeklyLoadBadge">Total: 0h / 25h capacity</span>
+                                </div>
+                                <p id="balancerStatusDesc">Your study distribution is sustainable. No risk of burnout detected.</p>
+                                <div class="capacity-bar-container">
+                                    <div class="capacity-bar-fill" id="capacityBarFill" style="width: 0%;"></div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- 7-Day Load Distribution Grid -->
+                        <!-- 7-Day Interactive Load Distribution Grid -->
                         <div class="week-distribution-grid" id="weekDistributionGrid">
-                            <!-- Populated dynamically for 7 days -->
+                            <!-- Populated dynamically for 7 days with drag/shift controls -->
                         </div>
                     </div>
                 </section>
@@ -147,7 +159,7 @@
                     <div class="section-header">
                         <div>
                             <h2>Task Kanban Board</h2>
-                            <p>Drag or move tasks across workflow stages.</p>
+                            <p>Organize and track your workflow stages.</p>
                         </div>
                         <div class="filter-group">
                             <select id="kanbanSubjectFilter" class="form-control">
