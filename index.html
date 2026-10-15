@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Workload Balancer & Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome Icons & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <h2>AcadBalance</h2>
+            </div>
+            <nav class="nav-links">
+                <a href="#" class="nav-item active" data-tab="dashboard"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+                <a href="#" class="nav-item" data-tab="balancer"><i class="fa-solid fa-scale-balanced"></i> Workload Balancer</a>
+                <a href="#" class="nav-item" data-tab="kanban"><i class="fa-solid fa-columns"></i> Kanban Board</a>
+                <a href="#" class="nav-item" data-tab="pomodoro"><i class="fa-solid fa-stopwatch"></i> Focus Pomodoro</a>
+                <a href="#" class="nav-item" data-tab="analytics"><i class="fa-solid fa-chart-line"></i> Analytics</a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn-theme" id="themeToggle"><i class="fa-solid fa-moon"></i> <span>Dark Mode</span></button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="globalSearch" placeholder="Search tasks, subjects...">
+                </div>
+                <div class="topbar-actions">
+                    <button class="btn-primary" id="openTaskModal"><i class="fa-solid fa-plus"></i> New Task</button>
+                    <div class="user-profile">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="User">
+                        <span>Alex Scholar</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dynamic Tab Container -->
+            <div class="tab-content">
+
+                <!-- 1. DASHBOARD TAB -->
+                <section id="dashboard" class="tab-pane active">
+                    <div class="welcome-banner">
+                        <div>
+                            <h1>Welcome back, Alex! 👋</h1>
+                            <p>Here is your academic overview for today. Your workload is currently <strong id="workloadStatusText">Balanced</strong>.</p>
+                        </div>
+                        <div class="date-badge">
+                            <i class="fa-solid fa-calendar-days"></i>
+                            <span id="currentDateDisplay">Oct 15, 2026</span>
+                        </div>
+                    </div>
+
+                    <!-- Quick Metrics -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-icon blue"><i class="fa-solid fa-list-check"></i></div>
+                            <div class="metric-info">
+                                <h3>Total Tasks</h3>
+                                <p id="mTotalTasks">0</p>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon purple"><i class="fa-solid fa-clock"></i></div>
+                            <div class="metric-info">
+                                <h3>Est. Study Hours</h3>
+                                <p id="mTotalHours">0h</p>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon orange"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="metric-info">
+                                <h3>High Priority</h3>
+                                <p id="mHighPriority">0</p>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon green"><i class="fa-solid fa-circle-check"></i></div>
+                            <div class="metric-info">
+                                <h3>Completed</h3>
+                                <p id="mCompleted">0%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Grid -->
+                    <div class="dash-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-bolt"></i> Today's Recommended Focus</h3>
+                                <span class="badge">AI Balancer</span>
+                            </div>
+                            <div id="todaysFocusList" class="focus-list">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-book"></i> Subject Load Distribution</h3>
+                            </div>
+                            <div class="subject-bars" id="subjectLoadBars">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. WORKLOAD BALANCER TAB -->
+                <section id="balancer" class="tab-pane">
+                    <div class="section-header">
+                        <div>
+                            <h2>Workload Balancer & Scheduler</h2>
+                            <p>Prevent burnout by evenly distributing your assignments across upcoming days.</p>
+                        </div>
+                        <button class="btn-secondary" id="autoBalanceBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Balance Overload</button>
+                    </div>
+
+                    <div class="balancer-container">
+                        <div class="card overload-alert-card" id="overloadAlertCard">
+                            <i class="fa-solid fa-shield-heart"></i>
+                            <div>
+                                <h4>Workload Status: <span id="balancerStatusTitle">Optimal</span></h4>
+                                <p id="balancerStatusDesc">Your daily study hours are within a healthy, sustainable threshold (&lt; 5h/day).</p>
+                            </div>
+                        </div>
+
+                        <!-- 7-Day Load Distribution Grid -->
+                        <div class="week-distribution-grid" id="weekDistributionGrid">
+                            <!-- Populated dynamically for 7 days -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. KANBAN BOARD TAB -->
+                <section id="kanban" class="tab-pane">
+                    <div class="section-header">
+                        <div>
+                            <h2>Task Kanban Board</h2>
+                            <p>Drag or move tasks across workflow stages.</p>
+                        </div>
+                        <div class="filter-group">
+                            <select id="kanbanSubjectFilter" class="form-control">
+                                <option value="all">All Subjects</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="kanban-board">
+                        <div class="kanban-col" data-status="todo">
+                            <div class="kanban-header todo"><span>To Do</span><span class="count" id="count-todo">0</span></div>
+                            <div class="kanban-tasks" id="tasks-todo"></div>
+                        </div>
+                        <div class="kanban-col" data-status="in-progress">
+                            <div class="kanban-header in-progress"><span>In Progress</span><span class="count" id="count-inprogress">0</span></div>
+                            <div class="kanban-tasks" id="tasks-in-progress"></div>
+                        </div>
+                        <div class="kanban-col" data-status="completed">
+                            <div class="kanban-header completed"><span>Completed</span><span class="count" id="count-completed">0</span></div>
+                            <div class="kanban-tasks" id="tasks-completed"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. POMODORO TIMER TAB -->
+                <section id="pomodoro" class="tab-pane">
+                    <div class="section-header">
+                        <div>
+                            <h2>Focus Pomodoro Timer</h2>
+                            <p>Boost productivity with timed study intervals and automated breaks.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="pomodoro-wrapper">
+                        <div class="pomodoro-card">
+                            <div class="pomo-modes">
+                                <button class="pomo-mode-btn active" data-mode="work">Study Session (25m)</button>
+                                <button class="pomo-mode-btn" data-mode="shortBreak">Short Break (5m)</button>
+                                <button class="pomo-mode-btn" data-mode="longBreak">Long Break (15m)</button>
+                            </div>
+
+                            <div class="timer-display">
+                                <span id="timerMinutes">25</span>:<span id="timerSeconds">00</span>
+                            </div>
+
+                            <div class="pomo-controls">
+                                <button class="btn-primary btn-lg" id="startTimerBtn"><i class="fa-solid fa-play"></i> Start</button>
+                                <button class="btn-secondary btn-lg" id="resetTimerBtn"><i class="fa-solid fa-rotate-right"></i> Reset</button>
+                            </div>
+
+                            <div class="pomo-task-assign">
+                                <label for="pomoTaskSelect">Linking focus to task:</label>
+                                <select id="pomoTaskSelect" class="form-control">
+                                    <option value="">-- None (General Study) --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. ANALYTICS TAB -->
+                <section id="analytics" class="tab-pane">
+                    <div class="section-header">
+                        <div>
+                            <h2>Productivity & Study Analytics</h2>
+                            <p>Review your academic performance metrics and completed workload hours.</p>
+                        </div>
+                    </div>
+
+                    <div class="analytics-grid">
+                        <div class="card">
+                            <h3><i class="fa-solid fa-chart-pie"></i> Tasks by Priority</h3>
+                            <div class="analytics-stat-row">
+                                <span>High Priority</span><strong id="statHigh">0</strong>
+                            </div>
+                            <div class="analytics-stat-row">
+                                <span>Medium Priority</span><strong id="statMed">0</strong>
+                            </div>
+                            <div class="analytics-stat-row">
+                                <span>Low Priority</span><strong id="statLow">0</strong>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3><i class="fa-solid fa-fire"></i> Study Streak & Consistency</h3>
+                            <div class="streak-box">
+                                <i class="fa-solid fa-fire-flame-curved"></i>
+                                <div>
+                                    <h2 id="streakCount">5 Days</h2>
+                                    <p>Consistent daily tracking streak!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ADD/EDIT TASK MODAL -->
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitleText">Add New Task</h3>
+                <button class="close-modal" id="closeModalBtn">&times;</button>
+            </div>
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+                <div class="form-group">
+                    <label>Task Title</label>
+                    <input type="text" id="taskTitle" class="form-control" required placeholder="e.g. Physics Problem Set #4">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Subject / Course</label>
+                        <input type="text" id="taskSubject" class="form-control" required placeholder="e.g. Physics 101">
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select id="taskPriority" class="form-control">
+                            <option value="High">High 🔴</option>
+                            <option value="Medium" selected>Medium 🟡</option>
+                            <option value="Low">Low 🟢</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" id="taskDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Est. Hours (Workload)</label>
+                        <input type="number" id="taskHours" class="form-control" min="0.5" max="10" step="0.5" value="2" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="taskStatus" class="form-control">
+                        <option value="todo">To Do</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancelModalBtn">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveTaskBtn">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
