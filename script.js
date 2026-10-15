@@ -6,6 +6,8 @@ let tasks = JSON.parse(localStorage.getItem('acad_tasks')) || [
     { id: '4', title: 'Macroeconomics Essay Draft', subject: 'Economics', priority: 'Low', date: '2026-10-20', hours: 4, status: 'completed' }
 ];
 
+let maxDailyCap = parseInt(localStorage.getItem('acad_max_cap')) || 5; // Default max 5 hours per day
+
 let currentTheme = localStorage.getItem('acad_theme') || 'light';
 document.documentElement.setAttribute('data-theme', currentTheme);
 if (currentTheme === 'dark') {
@@ -26,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initApp() {
     updateDateDisplay();
+    document.getElementById('maxCapDisplay').innerText = maxDailyCap;
     renderAll();
 }
 
@@ -76,7 +79,6 @@ function setupEventListeners() {
         document.getElementById('taskForm').reset();
         document.getElementById('taskId').value = '';
         document.getElementById('modalTitleText').innerText = 'Add New Task';
-        // Default due date to today
         document.getElementById('taskDate').valueAsDate = new Date();
         modal.classList.add('active');
     });
@@ -96,7 +98,6 @@ function setupEventListeners() {
         const status = document.getElementById('taskStatus').value;
 
         if (id) {
-            // Edit
             const task = tasks.find(t => t.id === id);
             if (task) {
                 task.title = title;
@@ -107,7 +108,6 @@ function setupEventListeners() {
                 task.status = status;
             }
         } else {
-            // Create
             const newTask = {
                 id: Date.now().toString(),
                 title, subject, priority, date, hours, status
@@ -123,7 +123,6 @@ function setupEventListeners() {
     // Search Bar
     document.getElementById('globalSearch').addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
-        // Switch to Kanban or filter view if typing
         if (query.trim() !== '') {
             document.querySelector('[data-tab="kanban"]').click();
             filterKanban(query);
@@ -137,9 +136,20 @@ function setupEventListeners() {
         renderKanban(e.target.value);
     });
 
+    // Advanced Balancer Settings (Max Cap)
+    document.getElementById('optimizerSettingsBtn').addEventListener('click', () => {
+        const newCap = prompt('Enter your maximum recommended study hours per day (e.g. 4, 5, 6):', maxDailyCap);
+        if (newCap !== null && !isNaN(newCap) && Number(newCap) > 0) {
+            maxDailyCap = Number(newCap);
+            localStorage.setItem('acad_max_cap', maxDailyCap);
+            document.getElementById('maxCapDisplay').innerText = maxDailyCap;
+            renderBalancer();
+        }
+    });
+
     // Auto-balance Button
     document.getElementById('autoBalanceBtn').addEventListener('click', () => {
-        autoBalanceWorkload();
+        advancedSmartAutoBalance();
     });
 
     // Pomodoro Controls
@@ -173,7 +183,6 @@ function renderDashboard() {
     document.getElementById('mHighPriority').innerText = highPriority;
     document.getElementById('mCompleted').innerText = completionRate + '%';
 
-    // Today's focus list (Pending tasks due soonest)
     const pendingTasks = tasks.filter(t => t.status !== 'completed').sort((a,b) => new Date(a.date) - new Date(b.date));
     const focusContainer = document.getElementById('todaysFocusList');
     focusContainer.innerHTML = '';
@@ -194,7 +203,6 @@ function renderDashboard() {
         });
     }
 
-    // Subject Load Breakdown
     const subjectMap = {};
     tasks.forEach(t => {
         if (t.status !== 'completed') {
@@ -220,90 +228,170 @@ function renderDashboard() {
     }
 }
 
-// 2. Workload Balancer Renderer
+// 2. Advanced Workload Balancer Renderer
 function renderBalancer() {
     const grid = document.getElementById('weekDistributionGrid');
     grid.innerHTML = '';
 
-    // Generate next 7 days
     const today = new Date();
     let totalWeeklyHours = 0;
+    const weeklyCapacityMax = maxDailyCap * 7;
 
+    // Generate 7 upcoming days and collect date options for shifting
+    let weekDaysMeta = [];
     for (let i = 0; i < 7; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() + i);
         const dateStr = d.toISOString().split('T')[0];
-        const dayName = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        weekDaysMeta.push({ dateStr, dayLabel });
+    }
 
-        const dayTasks = tasks.filter(t => t.date === dateStr && t.status !== 'completed');
+    weekDaysMeta.forEach((meta) => {
+        const dayTasks = tasks.filter(t => t.date === meta.dateStr && t.status !== 'completed');
         const dayHours = dayTasks.reduce((acc, t) => acc + t.hours, 0);
         totalWeeklyHours += dayHours;
 
+        let statusClass = 'balanced';
+        let statusText = 'Balanced';
+        if (dayHours === 0) {
+            statusClass = 'light';
+            statusText = 'Light';
+        } else if (dayHours > maxDailyCap) {
+            statusClass = 'heavy';
+            statusText = 'Over Cap ⚠️';
+        }
+
         let tasksHtml = '';
         dayTasks.forEach(t => {
+            // Build dropdown options for shifting task to another day
+            let optionsHtml = '';
+            weekDaysMeta.forEach(wm => {
+                const selectedAttr = wm.dateStr === t.date ? 'selected' : '';
+                optionsHtml += `<option value="${wm.dateStr}" ${selectedAttr}>${wm.dayLabel}</option>`;
+            });
+
             tasksHtml += `
-                <div class="mini-task-pill">
-                    <strong>${t.title}</strong>
-                    <span>${t.subject} (${t.hours}h)</span>
+                <div class="advanced-task-pill">
+                    <div class="advanced-task-top">
+                        <strong>${t.title}</strong>
+                        <span class="tag-priority ${t.priority}">${t.priority}</span>
+                    </div>
+                    <span>${t.subject} • ${t.hours}h</span>
+                    <div style="margin-top: 4px; display:flex; align-items:center; justify-content:space-between;">
+                        <span style="font-size:0.7rem; color:var(--text-muted);">Shift to:</span>
+                        <select class="shift-day-select" onchange="shiftTaskDate('${t.id}', this.value)">
+                            ${optionsHtml}
+                        </select>
+                    </div>
                 </div>
             `;
         });
 
         if (dayTasks.length === 0) {
-            tasksHtml = '<span style="color:var(--text-muted); font-size:0.75rem; text-align:center; margin-top:20px;">Light day</span>';
+            tasksHtml = '<span style="color:var(--text-muted); font-size:0.75rem; text-align:center; margin-top:30px;">No scheduled workload</span>';
         }
 
+        const isOverCapCol = dayHours > maxDailyCap ? 'over-cap' : '';
+
         grid.innerHTML += `
-            <div class="day-column">
+            <div class="day-column ${isOverCapCol}">
                 <div class="day-header">
-                    <h4>${dayName}</h4>
-                    <span>${dayHours}h workload</span>
+                    <h4>${meta.dayLabel}</h4>
+                    <div class="day-meta-info">
+                        <span>${dayHours}h load</span>
+                        <span class="day-status-pill ${statusClass}">${statusText}</span>
+                    </div>
                 </div>
                 <div class="day-tasks-list">
                     ${tasksHtml}
                 </div>
             </div>
         `;
-    }
+    });
 
-    // Update status card
+    // Update global burnout card
     const alertCard = document.getElementById('overloadAlertCard');
     const statusTitle = document.getElementById('balancerStatusTitle');
     const statusDesc = document.getElementById('balancerStatusDesc');
     const workloadStatusText = document.getElementById('workloadStatusText');
+    const weeklyLoadBadge = document.getElementById('weeklyLoadBadge');
+    const capacityBarFill = document.getElementById('capacityBarFill');
+    const balancerAlertIcon = document.getElementById('balancerAlertIcon');
 
-    if (totalWeeklyHours > 25) {
+    weeklyLoadBadge.innerText = `Total: ${totalWeeklyHours}h / ${weeklyCapacityMax}h cap`;
+    const capacityPct = Math.min(Math.round((totalWeeklyHours / weeklyCapacityMax) * 100), 100);
+    capacityBarFill.style.width = capacityPct + '%';
+
+    if (totalWeeklyHours > weeklyCapacityMax || totalWeeklyHours > (maxDailyCap * 5)) {
         alertCard.classList.add('warning');
-        statusTitle.innerText = 'Heavy Overload Alert';
-        statusDesc.innerText = `Total upcoming weekly workload is ${totalWeeklyHours}h. Consider using Auto-Balance to redistribute tasks.`;
-        workloadStatusText.innerText = 'Heavy';
+        balancerAlertIcon.className = 'fa-solid fa-triangle-exclamation';
+        statusTitle.innerText = 'High Burnout Risk / Overload';
+        statusDesc.innerText = `Your upcoming 7-day workload (${totalWeeklyHours}h) exceeds sustainable thresholds. Use Smart Auto-Balance below to distribute tasks evenly.`;
+        workloadStatusText.innerText = 'Heavy Overload';
+        capacityBarFill.style.backgroundColor = 'var(--danger)';
     } else {
         alertCard.classList.remove('warning');
-        statusTitle.innerText = 'Optimal Balance';
-        statusDesc.innerText = `Total upcoming weekly workload is ${totalWeeklyHours}h. Your schedule is well-balanced.`;
+        balancerAlertIcon.className = 'fa-solid fa-shield-heart';
+        statusTitle.innerText = 'Optimal Study Balance';
+        statusDesc.innerText = `Your workload distribution is healthy and sustainable (&le; ${maxDailyCap}h/day average).`;
         workloadStatusText.innerText = 'Balanced';
+        capacityBarFill.style.backgroundColor = 'var(--success)';
     }
 }
 
-// Auto-balance logic: spreads tasks out across the upcoming 5 days if overload detected
-function autoBalanceWorkload() {
+// Shift individual task date directly from balancer view
+function shiftTaskDate(taskId, newDateStr) {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+        task.date = newDateStr;
+        saveTasks();
+        renderAll();
+    }
+}
+
+// Advanced Smart Auto-Balance Algorithm
+function advancedSmartAutoBalance() {
     const pending = tasks.filter(t => t.status !== 'completed');
     if (pending.length === 0) {
         alert('No pending tasks to balance!');
         return;
     }
 
+    // Sort pending tasks by priority (High first) and then by original due date
+    const priorityWeight = { 'High': 3, 'Medium': 2, 'Low': 1 };
+    pending.sort((a, b) => {
+        if (priorityWeight[b.priority] !== priorityWeight[a.priority]) {
+            return priorityWeight[b.priority] - priorityWeight[a.priority];
+        }
+        return new Date(a.date) - new Date(b.date);
+    });
+
     const today = new Date();
-    pending.forEach((t, index) => {
-        const targetDate = new Date(today);
-        // Spread evenly across 1 to 5 days ahead
-        targetDate.setDate(today.getDate() + (index % 5));
-        t.date = targetDate.toISOString().split('T')[0];
+    // Distribute tasks across the next 6 days cyclically while keeping daily hours under maxDailyCap
+    let dayLoadTracker = [0, 0, 0, 0, 0, 0, 0];
+
+    pending.forEach(t => {
+        // Find the day with the lowest current assigned load
+        let minLoadIndex = 0;
+        let minLoadVal = dayLoadTracker[0];
+        for (let i = 0; i < 7; i++) {
+            if (dayLoadTracker[i] < minLoadVal) {
+                minLoadVal = dayLoadTracker[i];
+                minLoadIndex = i;
+            }
+        }
+
+        // Assign task to this optimal day
+        const assignedDate = new Date(today);
+        assignedDate.setDate(today.getDate() + minLoadIndex);
+        t.date = assignedDate.toISOString().split('T')[0];
+        dayLoadTracker[minLoadIndex] += t.hours;
     });
 
     saveTasks();
     renderAll();
-    alert('✨ Workload successfully re-distributed across the week to prevent burnout!');
+    alert('✨ AI Smart Workload Balancer successfully re-distributed all pending assignments evenly across the week to prevent burnout!');
 }
 
 // 3. Kanban Board Renderer
