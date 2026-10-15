@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AcadBalance Pro - Real-Time Student Suite</title>
+    <title>AcadBalance Pro - Real AI & Live P2P Suite</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,7 +21,7 @@
                 <a href="#" class="nav-item" data-tab="balancer"><i class="fa-solid fa-scale-balanced"></i> Workload Balancer</a>
                 <a href="#" class="nav-item" data-tab="kanban"><i class="fa-solid fa-columns"></i> Kanban Board</a>
                 <a href="#" class="nav-item" data-tab="pomodoro"><i class="fa-solid fa-stopwatch"></i> Focus Pomodoro</a>
-                <a href="#" class="nav-item" data-tab="rooms"><i class="fa-solid fa-users"></i> Live Study Rooms</a>
+                <a href="#" class="nav-item" data-tab="rooms"><i class="fa-solid fa-users"></i> Live P2P Rooms</a>
                 <a href="#" class="nav-item" data-tab="gpa"><i class="fa-solid fa-calculator"></i> GPA Simulator</a>
                 <a href="#" class="nav-item" data-tab="analytics"><i class="fa-solid fa-chart-line"></i> Analytics & XP</a>
             </nav>
@@ -38,7 +38,8 @@
                     <input type="text" id="globalSearch" placeholder="Search tasks, courses...">
                 </div>
                 <div class="topbar-actions">
-                    <button class="btn-secondary" id="openSyllabusModal"><i class="fa-solid fa-file-arrow-up"></i> AI Syllabus Parser</button>
+                    <button class="btn-secondary" id="openApiKeyModal"><i class="fa-solid fa-key"></i> Set Gemini API Key</button>
+                    <button class="btn-secondary" id="openSyllabusModal"><i class="fa-solid fa-brain"></i> Real AI Syllabus Parser</button>
                     <button class="btn-primary" id="openTaskModal"><i class="fa-solid fa-plus"></i> New Task</button>
                     <div class="user-profile">
                         <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="User">
@@ -56,7 +57,7 @@
                     <div class="welcome-banner">
                         <div>
                             <h1>Welcome back, Alex! 👋</h1>
-                            <p>Dynamic AI Workload Status: <strong id="workloadStatusText">Optimal</strong></p>
+                            <p>Real-Time AI Status: <strong id="workloadStatusText">Optimal</strong></p>
                         </div>
                         <div class="date-badge">
                             <i class="fa-solid fa-calendar-days"></i>
@@ -87,7 +88,7 @@
                         <div class="card">
                             <div class="card-header">
                                 <h3><i class="fa-solid fa-bolt"></i> Real-Time AI Focus Queue</h3>
-                                <span class="badge">Dynamic</span>
+                                <span class="badge">Gemini Connected</span>
                             </div>
                             <div id="todaysFocusList" class="focus-list"></div>
                         </div>
@@ -102,12 +103,12 @@
                 <section id="balancer" class="tab-pane">
                     <div class="section-header">
                         <div>
-                            <h2>Dynamic Workload Balancer</h2>
-                            <p>Real-time calculation of daily limits. Shift tasks or run the AI redistribution engine.</p>
+                            <h2>Real-Time Workload Balancer</h2>
+                            <p>Calculate exact burnout capacity and auto-balance tasks.</p>
                         </div>
                         <div class="balancer-actions">
                             <button class="btn-secondary" id="optimizerSettingsBtn"><i class="fa-solid fa-sliders"></i> Max Cap (<span id="maxCapDisplay">5</span>h)</button>
-                            <button class="btn-primary" id="autoBalanceBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> Run AI Balancer Engine</button>
+                            <button class="btn-primary" id="autoBalanceBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> Run AI Balancer</button>
                         </div>
                     </div>
 
@@ -163,7 +164,7 @@
                     <div class="section-header">
                         <div>
                             <h2>Focus Pomodoro Timer</h2>
-                            <p>Complete study intervals to earn real XP and Coins.</p>
+                            <p>Complete intervals to earn XP and Coins.</p>
                         </div>
                     </div>
                     
@@ -194,17 +195,30 @@
                     </div>
                 </section>
 
-                <!-- 5. LIVE STUDY ROOMS -->
+                <!-- 5. LIVE P2P STUDY ROOMS -->
                 <section id="rooms" class="tab-pane">
                     <div class="section-header">
                         <div>
-                            <h2>Live Multiplayer Study Rooms 🌟</h2>
-                            <p>Collaborate with active peers in real time.</p>
+                            <h2>Live P2P Study Rooms 🌟</h2>
+                            <p>Connect peer-to-peer with other students over WebRTC data channels.</p>
                         </div>
-                        <button class="btn-primary" id="createRoomBtn"><i class="fa-solid fa-plus"></i> Create New Room</button>
+                        <button class="btn-primary" id="createP2PRoomBtn"><i class="fa-solid fa-plus"></i> Host Live Room</button>
                     </div>
 
-                    <div class="rooms-grid" id="roomsGridContainer"></div>
+                    <div class="form-group" style="max-width:400px; margin-bottom:20px;">
+                        <label>Join Room via Host Peer ID:</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="joinPeerIdInput" class="form-control" placeholder="Enter peer ID...">
+                            <button class="btn-secondary" id="connectPeerBtn">Connect</button>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom:20px;">
+                        <h4>Your Live Room Status / Peer ID:</h4>
+                        <p id="myPeerIdDisplay" style="font-weight:700; color:var(--primary); font-size:1.1rem; margin-top:6px;">Generating connection...</p>
+                    </div>
+
+                    <div class="rooms-grid" id="p2pPeersGrid"></div>
                 </section>
 
                 <!-- 6. GPA SIMULATOR -->
@@ -212,7 +226,7 @@
                     <div class="section-header">
                         <div>
                             <h2>Dynamic GPA Simulator</h2>
-                            <p>Calculated live from active coursework and assignment weights.</p>
+                            <p>Calculated live from active coursework.</p>
                         </div>
                     </div>
                     <div class="gpa-container">
@@ -243,13 +257,30 @@
                             <div class="analytics-stat-row"><span>Low Priority</span><strong id="statLow">0</strong></div>
                         </div>
                         <div class="card">
-                            <h3><i class="fa-solid fa-trophy"></i> Weekly Live Leaderboard</h3>
+                            <h3><i class="fa-solid fa-trophy"></i> Weekly Leaderboard</h3>
                             <div class="leaderboard-list" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;" id="leaderboardListContainer"></div>
                         </div>
                     </div>
                 </section>
             </div>
         </main>
+    </div>
+
+    <!-- API KEY MODAL -->
+    <div class="modal-overlay" id="apiKeyModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Set Gemini API Key</h3>
+                <button class="close-modal" id="closeApiKeyModalBtn">&times;</button>
+            </div>
+            <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:16px;">Enter your Gemini API key to power real AI syllabus parsing and workload balancing.</p>
+            <div class="form-group">
+                <input type="password" id="geminiApiKeyInput" class="form-control" placeholder="AIzaSy...">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-primary" id="saveApiKeyBtn">Save Key</button>
+            </div>
+        </div>
     </div>
 
     <!-- TASK MODAL -->
@@ -305,24 +336,26 @@
         </div>
     </div>
 
-    <!-- SYLLABUS OCR MODAL -->
+    <!-- REAL AI SYLLABUS MODAL -->
     <div class="modal-overlay" id="syllabusModal">
         <div class="modal">
             <div class="modal-header">
-                <h3>AI Syllabus & PDF Parser</h3>
+                <h3>Real Gemini AI Syllabus Parser</h3>
                 <button class="close-modal" id="closeSyllabusModalBtn">&times;</button>
             </div>
-            <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:16px;">Paste course syllabus text. Our AI heuristic extractor will instantly generate formatted assignments.</p>
+            <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:16px;">Paste course syllabus text below. Gemini AI will analyze it and generate structured tasks.</p>
             <div class="form-group">
-                <textarea id="syllabusTextInput" class="form-control" rows="6" placeholder="e.g. Midterm exam on 2026-10-25 for Chemistry worth 3 hours..."></textarea>
+                <textarea id="syllabusTextInput" class="form-control" rows="6" placeholder="Paste syllabus text here..."></textarea>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" id="cancelSyllabusBtn">Cancel</button>
-                <button type="button" class="btn-primary" id="processSyllabusBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> Extract & Add Tasks</button>
+                <button type="button" class="btn-primary" id="processRealAiSyllabusBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> Parse with Gemini AI</button>
             </div>
         </div>
     </div>
 
+    <!-- PeerJS CDN for Real P2P WebRTC Rooms -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
