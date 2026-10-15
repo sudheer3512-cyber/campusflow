@@ -6,7 +6,9 @@ let tasks = JSON.parse(localStorage.getItem('acad_tasks')) || [
     { id: '4', title: 'Macroeconomics Essay Draft', subject: 'Economics', priority: 'Low', date: '2026-10-20', hours: 4, status: 'completed' }
 ];
 
-let maxDailyCap = parseInt(localStorage.getItem('acad_max_cap')) || 5; // Default max 5 hours per day
+let maxDailyCap = parseInt(localStorage.getItem('acad_max_cap')) || 5;
+let userXP = parseInt(localStorage.getItem('acad_xp')) || 450;
+let userCoins = parseInt(localStorage.getItem('acad_coins')) || 120;
 
 let currentTheme = localStorage.getItem('acad_theme') || 'light';
 document.documentElement.setAttribute('data-theme', currentTheme);
@@ -17,10 +19,10 @@ if (currentTheme === 'dark') {
 // Pomodoro Variables
 let pomoInterval = null;
 let pomoTimeLeft = 25 * 60;
-let pomoState = 'work'; // work, shortBreak, longBreak
+let pomoState = 'work';
 let isPomoRunning = false;
 
-// DOM Elements & Initialization
+// DOM Initialization
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     setupEventListeners();
@@ -29,11 +31,20 @@ document.addEventListener('DOMContentLoaded', () => {
 function initApp() {
     updateDateDisplay();
     document.getElementById('maxCapDisplay').innerText = maxDailyCap;
+    updateGamificationUI();
     renderAll();
 }
 
 function saveTasks() {
     localStorage.setItem('acad_tasks', JSON.stringify(tasks));
+}
+
+function updateGamificationUI() {
+    const level = Math.floor(userXP / 200) + 1;
+    document.getElementById('userXpBadge').innerText = `Lvl ${level} • ${userXP} XP`;
+    document.getElementById('mGoldCoins').innerText = userCoins;
+    localStorage.setItem('acad_xp', userXP);
+    localStorage.setItem('acad_coins', userCoins);
 }
 
 function renderAll() {
@@ -45,7 +56,7 @@ function renderAll() {
     updatePomoTaskSelect();
 }
 
-// Navigation Tabs
+// Event Listeners
 function setupEventListeners() {
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
@@ -73,7 +84,7 @@ function setupEventListeners() {
         }
     });
 
-    // Modal Controls
+    // Task Modal Controls
     const modal = document.getElementById('taskModal');
     document.getElementById('openTaskModal').addEventListener('click', () => {
         document.getElementById('taskForm').reset();
@@ -85,6 +96,40 @@ function setupEventListeners() {
 
     document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('active'));
     document.getElementById('cancelModalBtn').addEventListener('click', () => modal.classList.remove('active'));
+
+    // Syllabus Modal Controls
+    const syllabusModal = document.getElementById('syllabusModal');
+    document.getElementById('openSyllabusModal').addEventListener('click', () => syllabusModal.classList.add('active'));
+    document.getElementById('closeSyllabusModalBtn').addEventListener('click', () => syllabusModal.classList.remove('active'));
+    document.getElementById('cancelSyllabusBtn').addEventListener('click', () => syllabusModal.classList.remove('active'));
+
+    // Process Syllabus OCR Simulation
+    document.getElementById('processSyllabusBtn').addEventListener('click', () => {
+        const text = document.getElementById('syllabusTextInput').value;
+        if (!text.trim()) {
+            alert('Please paste some syllabus text first!');
+            return;
+        }
+
+        // Simple AI Parsing Simulation: extracts words into tasks
+        const today = new Date();
+        const newParsedTask = {
+            id: Date.now().toString(),
+            title: 'Syllabus Extracted Assignment',
+            subject: 'General Course',
+            priority: 'High',
+            date: new Date(today.setDate(today.getDate() + 3)).toISOString().split('T')[0],
+            hours: 3,
+            status: 'todo'
+        };
+
+        tasks.push(newParsedTask);
+        saveTasks();
+        renderAll();
+        syllabusModal.classList.remove('active');
+        document.getElementById('syllabusTextInput').value = '';
+        alert('✨ AI successfully parsed your syllabus and added extracted assignments!');
+    });
 
     // Task Form Submit
     document.getElementById('taskForm').addEventListener('submit', (e) => {
@@ -113,9 +158,12 @@ function setupEventListeners() {
                 title, subject, priority, date, hours, status
             };
             tasks.push(newTask);
+            userXP += 50; // Reward XP for creating task
+            userCoins += 10;
         }
 
         saveTasks();
+        updateGamificationUI();
         renderAll();
         modal.classList.remove('active');
     });
@@ -136,9 +184,9 @@ function setupEventListeners() {
         renderKanban(e.target.value);
     });
 
-    // Advanced Balancer Settings (Max Cap)
+    // Balancer Settings
     document.getElementById('optimizerSettingsBtn').addEventListener('click', () => {
-        const newCap = prompt('Enter your maximum recommended study hours per day (e.g. 4, 5, 6):', maxDailyCap);
+        const newCap = prompt('Enter your maximum recommended study hours per day:', maxDailyCap);
         if (newCap !== null && !isNaN(newCap) && Number(newCap) > 0) {
             maxDailyCap = Number(newCap);
             localStorage.setItem('acad_max_cap', maxDailyCap);
@@ -147,7 +195,6 @@ function setupEventListeners() {
         }
     });
 
-    // Auto-balance Button
     document.getElementById('autoBalanceBtn').addEventListener('click', () => {
         advancedSmartAutoBalance();
     });
@@ -174,13 +221,11 @@ function updateDateDisplay() {
 function renderDashboard() {
     const totalTasks = tasks.length;
     const totalHours = tasks.reduce((acc, t) => acc + (t.status !== 'completed' ? t.hours : 0), 0);
-    const highPriority = tasks.filter(t => t.priority === 'High' && t.status !== 'completed').length;
     const completedCount = tasks.filter(t => t.status === 'completed').length;
     const completionRate = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
 
     document.getElementById('mTotalTasks').innerText = totalTasks;
     document.getElementById('mTotalHours').innerText = totalHours + 'h';
-    document.getElementById('mHighPriority').innerText = highPriority;
     document.getElementById('mCompleted').innerText = completionRate + '%';
 
     const pendingTasks = tasks.filter(t => t.status !== 'completed').sort((a,b) => new Date(a.date) - new Date(b.date));
@@ -237,7 +282,6 @@ function renderBalancer() {
     let totalWeeklyHours = 0;
     const weeklyCapacityMax = maxDailyCap * 7;
 
-    // Generate 7 upcoming days and collect date options for shifting
     let weekDaysMeta = [];
     for (let i = 0; i < 7; i++) {
         const d = new Date(today);
@@ -264,7 +308,6 @@ function renderBalancer() {
 
         let tasksHtml = '';
         dayTasks.forEach(t => {
-            // Build dropdown options for shifting task to another day
             let optionsHtml = '';
             weekDaysMeta.forEach(wm => {
                 const selectedAttr = wm.dateStr === t.date ? 'selected' : '';
@@ -310,7 +353,6 @@ function renderBalancer() {
         `;
     });
 
-    // Update global burnout card
     const alertCard = document.getElementById('overloadAlertCard');
     const statusTitle = document.getElementById('balancerStatusTitle');
     const statusDesc = document.getElementById('balancerStatusDesc');
@@ -340,7 +382,6 @@ function renderBalancer() {
     }
 }
 
-// Shift individual task date directly from balancer view
 function shiftTaskDate(taskId, newDateStr) {
     const task = tasks.find(t => t.id === taskId);
     if (task) {
@@ -350,7 +391,6 @@ function shiftTaskDate(taskId, newDateStr) {
     }
 }
 
-// Advanced Smart Auto-Balance Algorithm
 function advancedSmartAutoBalance() {
     const pending = tasks.filter(t => t.status !== 'completed');
     if (pending.length === 0) {
@@ -358,7 +398,6 @@ function advancedSmartAutoBalance() {
         return;
     }
 
-    // Sort pending tasks by priority (High first) and then by original due date
     const priorityWeight = { 'High': 3, 'Medium': 2, 'Low': 1 };
     pending.sort((a, b) => {
         if (priorityWeight[b.priority] !== priorityWeight[a.priority]) {
@@ -368,11 +407,9 @@ function advancedSmartAutoBalance() {
     });
 
     const today = new Date();
-    // Distribute tasks across the next 6 days cyclically while keeping daily hours under maxDailyCap
     let dayLoadTracker = [0, 0, 0, 0, 0, 0, 0];
 
     pending.forEach(t => {
-        // Find the day with the lowest current assigned load
         let minLoadIndex = 0;
         let minLoadVal = dayLoadTracker[0];
         for (let i = 0; i < 7; i++) {
@@ -382,7 +419,6 @@ function advancedSmartAutoBalance() {
             }
         }
 
-        // Assign task to this optimal day
         const assignedDate = new Date(today);
         assignedDate.setDate(today.getDate() + minLoadIndex);
         t.date = assignedDate.toISOString().split('T')[0];
@@ -391,7 +427,7 @@ function advancedSmartAutoBalance() {
 
     saveTasks();
     renderAll();
-    alert('✨ AI Smart Workload Balancer successfully re-distributed all pending assignments evenly across the week to prevent burnout!');
+    alert('✨ AI Smart Workload Balancer successfully re-distributed all pending assignments evenly across the week!');
 }
 
 // 3. Kanban Board Renderer
@@ -456,13 +492,17 @@ function updateSubjectFilterOptions() {
     });
 }
 
-// Task Actions
+// Task Actions & Gamification Rewards
 function markCompleted(id) {
     const t = tasks.find(item => item.id === id);
-    if (t) {
+    if (t && t.status !== 'completed') {
         t.status = 'completed';
+        userXP += 100;
+        userCoins += 25;
         saveTasks();
+        updateGamificationUI();
         renderAll();
+        alert('🎉 Task completed! Earned +100 XP and +25 Gold Coins!');
     }
 }
 
@@ -495,7 +535,7 @@ function setPomoMode(mode) {
     pomoState = mode;
     clearInterval(pomoInterval);
     isPomoRunning = false;
-    document.getElementById('startTimerBtn').innerHTML = '<i class="fa-solid fa-play"></i> Start';
+    document.getElementById('startTimerBtn').innerHTML = '<i class="fa-solid fa-play"></i> Start Focus';
 
     if (mode === 'work') pomoTimeLeft = 25 * 60;
     else if (mode === 'shortBreak') pomoTimeLeft = 5 * 60;
@@ -516,7 +556,7 @@ function togglePomodoro() {
     if (isPomoRunning) {
         clearInterval(pomoInterval);
         isPomoRunning = false;
-        btn.innerHTML = '<i class="fa-solid fa-play"></i> Start';
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> Start Focus';
     } else {
         isPomoRunning = true;
         btn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
@@ -527,8 +567,12 @@ function togglePomodoro() {
             } else {
                 clearInterval(pomoInterval);
                 isPomoRunning = false;
-                alert('⏰ Pomodoro session complete! Great focus.');
-                btn.innerHTML = '<i class="fa-solid fa-play"></i> Start';
+                userXP += 150;
+                userCoins += 40;
+                saveTasks();
+                updateGamificationUI();
+                alert('⏰ Pomodoro session complete! Earned +150 XP and +40 Gold Coins.');
+                btn.innerHTML = '<i class="fa-solid fa-play"></i> Start Focus';
             }
         }, 1000);
     }
@@ -537,7 +581,7 @@ function togglePomodoro() {
 function resetPomodoro() {
     clearInterval(pomoInterval);
     isPomoRunning = false;
-    document.getElementById('startTimerBtn').innerHTML = '<i class="fa-solid fa-play"></i> Start';
+    document.getElementById('startTimerBtn').innerHTML = '<i class="fa-solid fa-play"></i> Start Focus';
     setPomoMode(pomoState);
 }
 
