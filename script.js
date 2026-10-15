@@ -2,15 +2,10 @@ const todayStr = new Date().toISOString().split('T')[0];
 
 let tasks = JSON.parse(localStorage.getItem('acad_tasks')) || [
     { id: '1', title: 'Data Structures Assignment 3', subject: 'Computer Science', priority: 'High', date: todayStr, hours: 3, status: 'todo' },
-    { id: '2', title: 'Organic Chemistry Lab Report', subject: 'Chemistry', priority: 'Medium', date: todayStr, hours: 2.5, status: 'in-progress' },
-    { id: '3', title: 'Calculus Problem Set #5', subject: 'Mathematics', priority: 'High', date: todayStr, hours: 2, status: 'todo' }
+    { id: '2', title: 'Organic Chemistry Lab Report', subject: 'Chemistry', priority: 'Medium', date: todayStr, hours: 2.5, status: 'in-progress' }
 ];
 
-let studyRooms = JSON.parse(localStorage.getItem('acad_rooms')) || [
-    { id: 'room-1', name: '🔥 Midnight Grind Lounge', focus: 'Finals Prep & Coding', peers: ['Sarah M. (Focus: 12m left)', 'David K. (Writing Essay)'] },
-    { id: 'room-2', name: '☕ Calculus & Coffee', focus: 'Math Problem Sets', peers: ['Liam P. (Solving Integrals)', 'Chloe T. (Reviewing notes)'] }
-];
-
+let geminiApiKey = localStorage.getItem('acad_gemini_key') || '';
 let maxDailyCap = parseInt(localStorage.getItem('acad_max_cap')) || 5;
 let userXP = parseInt(localStorage.getItem('acad_xp')) || 450;
 let userCoins = parseInt(localStorage.getItem('acad_coins')) || 120;
@@ -21,14 +16,14 @@ if (currentTheme === 'dark') {
     document.getElementById('themeToggle').innerHTML = '<i class="fa-solid fa-sun"></i> <span>Light Mode</span>';
 }
 
-let pomoInterval = null;
-let pomoTimeLeft = 25 * 60;
-let pomoState = 'work';
-let isPomoRunning = false;
+// PeerJS Real P2P Setup
+let peer = null;
+let connectedPeers = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     setupEventListeners();
+    initPeerJS();
 });
 
 function initApp() {
@@ -40,10 +35,6 @@ function initApp() {
 
 function saveTasks() {
     localStorage.setItem('acad_tasks', JSON.stringify(tasks));
-}
-
-function saveRooms() {
-    localStorage.setItem('acad_rooms', JSON.stringify(studyRooms));
 }
 
 function updateGamificationUI() {
@@ -58,7 +49,6 @@ function renderAll() {
     renderDashboard();
     renderBalancer();
     renderKanban();
-    renderRooms();
     renderGPA();
     renderAnalytics();
     updateSubjectFilterOptions();
@@ -91,6 +81,20 @@ function setupEventListeners() {
         }
     });
 
+    // API Key Modal
+    const apiKeyModal = document.getElementById('apiKeyModal');
+    document.getElementById('openApiKeyModal').addEventListener('click', () => apiKeyModal.classList.add('active'));
+    document.getElementById('closeApiKeyModalBtn').addEventListener('click', () => apiKeyModal.classList.remove('active'));
+    document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
+        const key = document.getElementById('geminiApiKeyInput').value.trim();
+        if (key) {
+            geminiApiKey = key;
+            localStorage.setItem('acad_gemini_key', key);
+            apiKeyModal.classList.remove('active');
+            alert('✨ Gemini API Key successfully saved!');
+        }
+    });
+
     // Task Modal
     const modal = document.getElementById('taskModal');
     document.getElementById('openTaskModal').addEventListener('click', () => {
@@ -109,44 +113,60 @@ function setupEventListeners() {
     document.getElementById('closeSyllabusModalBtn').addEventListener('click', () => syllabusModal.classList.remove('active'));
     document.getElementById('cancelSyllabusBtn').addEventListener('click', () => syllabusModal.classList.remove('active'));
 
-    // Real AI Syllabus Parser
-    document.getElementById('processSyllabusBtn').addEventListener('click', () => {
-        const text = document.getElementById('syllabusTextInput').value;
-        if (!text.trim()) {
-            alert('Please paste syllabus text first!');
+    // REAL GEMINI AI SYLLABUS PARSER
+    document.getElementById('processRealAiSyllabusBtn').addEventListener('click', async () => {
+        if (!geminiApiKey) {
+            alert('Please set your Gemini API Key first using the top bar button!');
+            apiKeyModal.classList.add('active');
             return;
         }
 
-        const newParsedTask = {
-            id: Date.now().toString(),
-            title: text.slice(0, 45) + ' (AI Parsed)',
-            subject: 'Syllabus Course',
-            priority: 'High',
-            date: todayStr,
-            hours: 3.5,
-            status: 'todo'
-        };
+        const text = document.getElementById('syllabusTextInput').value.trim();
+        if (!text) {
+            alert('Please paste syllabus text!');
+            return;
+        }
 
-        tasks.push(newParsedTask);
-        saveTasks();
-        renderAll();
-        syllabusModal.classList.remove('active');
-        document.getElementById('syllabusTextInput').value = '';
-        alert('✨ AI successfully parsed your syllabus and created assignments!');
-    });
+        alert('🤖 Connecting to Gemini AI to parse syllabus...');
 
-    // Create Room Button
-    document.getElementById('createRoomBtn').addEventListener('click', () => {
-        const roomName = prompt('Enter Study Room Name:', '🚀 Focus & Code Lab');
-        if (roomName) {
-            studyRooms.push({
-                id: 'room-' + Date.now(),
-                name: roomName,
-                focus: 'General Study',
-                peers: ['Alex Scholar (You - Active)']
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `Extract assignments and tasks from this syllabus text and return ONLY a valid JSON array where each object has keys: title (string), subject (string), priority (High/Medium/Low), hours (number). Syllabus text: ${text}`
+                        }]
+                    }]
+                })
             });
-            saveRooms();
-            renderRooms();
+
+            const data = await response.json();
+            const rawText = data.candidates[0].content.parts[0].text;
+            const cleanedJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const parsedTasks = JSON.parse(cleanedJson);
+
+            parsedTasks.forEach(pt => {
+                tasks.push({
+                    id: Date.now().toString() + Math.random(),
+                    title: pt.title,
+                    subject: pt.subject || 'General',
+                    priority: pt.priority || 'Medium',
+                    date: todayStr,
+                    hours: pt.hours || 2,
+                    status: 'todo'
+                });
+            });
+
+            saveTasks();
+            renderAll();
+            syllabusModal.classList.remove('active');
+            document.getElementById('syllabusTextInput').value = '';
+            alert('✨ Gemini AI successfully extracted and added all tasks!');
+        } catch (err) {
+            console.error(err);
+            alert('Error calling Gemini AI. Please check your API key.');
         }
     });
 
@@ -209,21 +229,51 @@ function setupEventListeners() {
 
     document.getElementById('autoBalanceBtn').addEventListener('click', realAIAutoBalanceEngine);
 
-    document.querySelectorAll('.pomo-mode-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.pomo-mode-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            setPomoMode(e.target.getAttribute('data-mode'));
-        });
+    document.getElementById('connectPeerBtn').addEventListener('click', () => {
+        const peerId = document.getElementById('joinPeerIdInput').value.trim();
+        if (peerId && peer) {
+            const conn = peer.connect(peerId);
+            conn.on('open', () => {
+                connectedPeers.push(conn);
+                alert('Successfully connected to peer!');
+                renderPeers();
+            });
+        }
     });
-
-    document.getElementById('startTimerBtn').addEventListener('click', togglePomodoro);
-    document.getElementById('resetTimerBtn').addEventListener('click', resetPomodoro);
 }
 
 function updateDateDisplay() {
     const options = { month: 'short', day: 'numeric', year: 'numeric' };
     document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString('en-US', options);
+}
+
+// REAL P2P WEBRTC (PEERJS)
+function initPeerJS() {
+    peer = new Peer();
+    peer.on('open', (id) => {
+        document.getElementById('myPeerIdDisplay').innerText = id;
+    });
+    peer.on('connection', (conn) => {
+        connectedPeers.push(conn);
+        alert(`A peer connected to your study session: ${conn.peer}`);
+        renderPeers();
+    });
+}
+
+function renderPeers() {
+    const grid = document.getElementById('p2pPeersGrid');
+    grid.innerHTML = '';
+    connectedPeers.forEach(cp => {
+        grid.innerHTML += `
+            <div class="card">
+                <h3><i class="fa-solid fa-circle" style="color:var(--success); font-size:0.7rem;"></i> Connected Peer</h3>
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-top:6px;">Peer ID: ${cp.peer}</p>
+            </div>
+        `;
+    });
+    if (connectedPeers.length === 0) {
+        grid.innerHTML = '<p style="color:var(--text-muted);">No peers connected yet. Share your Peer ID with a friend!</p>';
+    }
 }
 
 function renderDashboard() {
@@ -278,7 +328,6 @@ function renderDashboard() {
     }
 }
 
-// REAL AI WORKLOAD BALANCER ENGINE
 function renderBalancer() {
     const grid = document.getElementById('weekDistributionGrid');
     grid.innerHTML = '';
@@ -355,15 +404,6 @@ function renderBalancer() {
     weeklyLoadBadge.innerText = `Total: ${totalWeeklyHours}h / ${weeklyCapacityMax}h cap`;
     const capacityPct = Math.min(Math.round((totalWeeklyHours / weeklyCapacityMax) * 100), 100);
     capacityBarFill.style.width = capacityPct + '%';
-
-    const workloadStatusText = document.getElementById('workloadStatusText');
-    if (totalWeeklyHours > weeklyCapacityMax) {
-        workloadStatusText.innerText = 'Heavy Overload ⚠️';
-        workloadStatusText.style.color = 'var(--danger)';
-    } else {
-        workloadStatusText.innerText = 'Optimal Balance ✨';
-        workloadStatusText.style.color = 'var(--success)';
-    }
 }
 
 function shiftTaskDate(taskId, newDateStr) {
@@ -375,7 +415,6 @@ function shiftTaskDate(taskId, newDateStr) {
     }
 }
 
-// REAL AI HEURISTIC REDISTRIBUTION ALGORITHM
 function realAIAutoBalanceEngine() {
     const pending = tasks.filter(t => t.status !== 'completed');
     if (pending.length === 0) {
@@ -402,10 +441,9 @@ function realAIAutoBalanceEngine() {
 
     saveTasks();
     renderAll();
-    alert('✨ AI Balancer Engine successfully optimized and redistributed your workload evenly across the week!');
+    alert('✨ AI Balancer Engine successfully optimized your workload!');
 }
 
-// KANBAN & DRAG AND DROP
 function allowDrop(ev) { ev.preventDefault(); }
 function dragTask(ev, id) { ev.dataTransfer.setData('text/plain', id); }
 
@@ -517,39 +555,6 @@ function deleteTask(id) {
     }
 }
 
-// LIVE STUDY ROOMS
-function renderRooms() {
-    const grid = document.getElementById('roomsGridContainer');
-    grid.innerHTML = '';
-    studyRooms.forEach(room => {
-        let peersHtml = '';
-        room.peers.forEach(p => { peersHtml += `<div class="peer-pill"><i class="fa-solid fa-circle" style="color:var(--success); font-size:0.6rem;"></i> ${p}</div>`; });
-
-        grid.innerHTML += `
-            <div class="card room-card">
-                <div class="room-card-header">
-                    <h3>${room.name}</h3>
-                    <span class="badge">${room.peers.length} Active</span>
-                </div>
-                <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px;">Focus: ${room.focus}</p>
-                <div class="room-peers-list">${peersHtml}</div>
-                <button class="btn-secondary" style="width:100%; margin-top:16px;" onclick="joinRoom('${room.id}')">Join Study Room</button>
-            </div>
-        `;
-    });
-}
-
-function joinRoom(roomId) {
-    const room = studyRooms.find(r => r.id === roomId);
-    if (room) {
-        room.peers.push('Alex Scholar (Joined Live)');
-        saveRooms();
-        renderRooms();
-        alert(`Successfully connected to ${room.name}!`);
-    }
-}
-
-// GPA SIMULATOR
 function renderGPA() {
     const totalHours = tasks.reduce((acc, t) => acc + t.hours, 1);
     const completedHours = tasks.filter(t => t.status === 'completed').reduce((acc, t) => acc + t.hours, 0);
@@ -558,7 +563,12 @@ function renderGPA() {
     document.getElementById('currentCalculatedGPA').innerText = simulatedGPA;
 }
 
-// POMODORO
+// Pomodoro
+let pomoInterval = null;
+let pomoTimeLeft = 25 * 60;
+let pomoState = 'work';
+let isPomoRunning = false;
+
 function setPomoMode(mode) {
     pomoState = mode;
     clearInterval(pomoInterval);
