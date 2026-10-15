@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Academic Workload Balancer & Tracker</title>
+    <title>AcadBalance Pro - Social Study & Workload Balancer</title>
     <link rel="stylesheet" href="style.css">
     <!-- FontAwesome Icons & Google Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -22,6 +22,8 @@
                 <a href="#" class="nav-item" data-tab="balancer"><i class="fa-solid fa-scale-balanced"></i> Workload Balancer</a>
                 <a href="#" class="nav-item" data-tab="kanban"><i class="fa-solid fa-columns"></i> Kanban Board</a>
                 <a href="#" class="nav-item" data-tab="pomodoro"><i class="fa-solid fa-stopwatch"></i> Focus Pomodoro</a>
+                <a href="#" class="nav-item" data-tab="rooms"><i class="fa-solid fa-users"></i> Study Rooms 🌟</a>
+                <a href="#" class="nav-item" data-tab="gpa"><i class="fa-solid fa-calculator"></i> GPA Simulator</a>
                 <a href="#" class="nav-item" data-tab="analytics"><i class="fa-solid fa-chart-line"></i> Analytics</a>
             </nav>
             <div class="sidebar-footer">
@@ -38,10 +40,14 @@
                     <input type="text" id="globalSearch" placeholder="Search tasks, subjects...">
                 </div>
                 <div class="topbar-actions">
+                    <button class="btn-secondary" id="openSyllabusModal"><i class="fa-solid fa-file-arrow-up"></i> Import Syllabus OCR</button>
                     <button class="btn-primary" id="openTaskModal"><i class="fa-solid fa-plus"></i> New Task</button>
                     <div class="user-profile">
                         <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="User">
-                        <span>Alex Scholar</span>
+                        <div class="user-meta-text">
+                            <span>Alex Scholar</span>
+                            <small id="userXpBadge">Lvl 3 • 450 XP</small>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -54,7 +60,7 @@
                     <div class="welcome-banner">
                         <div>
                             <h1>Welcome back, Alex! 👋</h1>
-                            <p>Here is your academic overview for today. Your workload is currently <strong id="workloadStatusText">Balanced</strong>.</p>
+                            <p>Your study pet is feeling <strong id="petMoodText">Energized 🐱</strong>. Workload status is <strong id="workloadStatusText">Balanced</strong>.</p>
                         </div>
                         <div class="date-badge">
                             <i class="fa-solid fa-calendar-days"></i>
@@ -79,10 +85,10 @@
                             </div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-icon orange"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="metric-icon orange"><i class="fa-solid fa-coins"></i></div>
                             <div class="metric-info">
-                                <h3>High Priority</h3>
-                                <p id="mHighPriority">0</p>
+                                <h3>Gold Coins</h3>
+                                <p id="mGoldCoins">120</p>
                             </div>
                         </div>
                         <div class="metric-card">
@@ -116,7 +122,7 @@
                     </div>
                 </section>
 
-                <!-- 2. ADVANCED WORKLOAD BALANCER TAB -->
+                <!-- 2. WORKLOAD BALANCER TAB -->
                 <section id="balancer" class="tab-pane">
                     <div class="section-header">
                         <div>
@@ -124,13 +130,13 @@
                             <p>Monitor burnout risk, adjust daily study caps, and intelligently shift tasks across the week.</p>
                         </div>
                         <div class="balancer-actions">
-                            <button class="btn-secondary" id="optimizerSettingsBtn"><i class="fa-solid fa-sliders"></i> Set Max Daily Cap (<span id="maxCapDisplay">5</span>h)</button>
+                            <button class="btn-secondary" id="optimizerSettingsBtn"><i class="fa-solid fa-sliders"></i> Max Cap (<span id="maxCapDisplay">5</span>h)</button>
                             <button class="btn-primary" id="autoBalanceBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Smart Auto-Balance</button>
                         </div>
                     </div>
 
                     <div class="balancer-container">
-                        <!-- Advanced Burnout Gauge Card -->
+                        <!-- Burnout Gauge Card -->
                         <div class="card overload-alert-card" id="overloadAlertCard">
                             <div class="alert-icon-box">
                                 <i class="fa-solid fa-shield-heart" id="balancerAlertIcon"></i>
@@ -138,7 +144,7 @@
                             <div class="alert-content">
                                 <div class="alert-title-row">
                                     <h4>Workload Status: <span id="balancerStatusTitle">Optimal</span></h4>
-                                    <span class="weekly-load-badge" id="weeklyLoadBadge">Total: 0h / 25h capacity</span>
+                                    <span class="weekly-load-badge" id="weeklyLoadBadge">Total: 0h / 35h capacity</span>
                                 </div>
                                 <p id="balancerStatusDesc">Your study distribution is sustainable. No risk of burnout detected.</p>
                                 <div class="capacity-bar-container">
@@ -149,7 +155,7 @@
 
                         <!-- 7-Day Interactive Load Distribution Grid -->
                         <div class="week-distribution-grid" id="weekDistributionGrid">
-                            <!-- Populated dynamically for 7 days with drag/shift controls -->
+                            <!-- Populated dynamically -->
                         </div>
                     </div>
                 </section>
@@ -189,7 +195,7 @@
                     <div class="section-header">
                         <div>
                             <h2>Focus Pomodoro Timer</h2>
-                            <p>Boost productivity with timed study intervals and automated breaks.</p>
+                            <p>Boost productivity and earn XP/Gold Coins for every completed interval.</p>
                         </div>
                     </div>
                     
@@ -206,7 +212,7 @@
                             </div>
 
                             <div class="pomo-controls">
-                                <button class="btn-primary btn-lg" id="startTimerBtn"><i class="fa-solid fa-play"></i> Start</button>
+                                <button class="btn-primary btn-lg" id="startTimerBtn"><i class="fa-solid fa-play"></i> Start Focus</button>
                                 <button class="btn-secondary btn-lg" id="resetTimerBtn"><i class="fa-solid fa-rotate-right"></i> Reset</button>
                             </div>
 
@@ -220,12 +226,71 @@
                     </div>
                 </section>
 
-                <!-- 5. ANALYTICS TAB -->
+                <!-- 5. STUDY ROOMS TAB (VIRAL SOCIAL FEATURE) -->
+                <section id="rooms" class="tab-pane">
+                    <div class="section-header">
+                        <div>
+                            <h2>Live Virtual Study Rooms 🌟</h2>
+                            <p>Study in real-time with peers across the globe, share focus status, and stay accountable.</p>
+                        </div>
+                        <button class="btn-primary" id="createRoomBtn"><i class="fa-solid fa-plus"></i> Create Study Room</button>
+                    </div>
+
+                    <div class="rooms-grid">
+                        <div class="card room-card">
+                            <div class="room-card-header">
+                                <h3>🔥 Midnight Grind Lounge</h3>
+                                <span class="badge">4 Peers Active</span>
+                            </div>
+                            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px;">Focus: Finals Prep & Coding</p>
+                            <div class="room-peers-list">
+                                <div class="peer-pill"><i class="fa-solid fa-circle" style="color:var(--success); font-size:0.6rem;"></i> Sarah M. (Pomodoro: 12m left)</div>
+                                <div class="peer-pill"><i class="fa-solid fa-circle" style="color:var(--success); font-size:0.6rem;"></i> David K. (Writing Essay)</div>
+                                <div class="peer-pill"><i class="fa-solid fa-circle" style="color:var(--warning); font-size:0.6rem;"></i> Elena R. (Short Break)</div>
+                            </div>
+                            <button class="btn-secondary" style="width:100%; margin-top:16px;" onclick="alert('Joined Room Successfully!')">Join Room</button>
+                        </div>
+                        <div class="card room-card">
+                            <div class="room-card-header">
+                                <h3>☕ Calculus & Coffee</h3>
+                                <span class="badge">2 Peers Active</span>
+                            </div>
+                            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px;">Focus: Math Problem Sets</p>
+                            <div class="room-peers-list">
+                                <div class="peer-pill"><i class="fa-solid fa-circle" style="color:var(--success); font-size:0.6rem;"></i> Liam P. (Solving Integrals)</div>
+                                <div class="peer-pill"><i class="fa-solid fa-circle" style="color:var(--success); font-size:0.6rem;"></i> Chloe T. (Reviewing notes)</div>
+                            </div>
+                            <button class="btn-secondary" style="width:100%; margin-top:16px;" onclick="alert('Joined Room Successfully!')">Join Room</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. GPA SIMULATOR TAB -->
+                <section id="gpa" class="tab-pane">
+                    <div class="section-header">
+                        <div>
+                            <h2>GPA & Grade Impact Simulator</h2>
+                            <p>Calculate your estimated cumulative GPA and simulate how completing pending assignments affects it.</p>
+                        </div>
+                    </div>
+
+                    <div class="gpa-container">
+                        <div class="card gpa-summary-card">
+                            <div class="gpa-big-score">
+                                <span id="currentCalculatedGPA">3.82</span>
+                                <small>Estimated Cumulative GPA</small>
+                            </div>
+                            <p>Based on your active subject courses and completed assignments weight.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. ANALYTICS & LEADERBOARD TAB -->
                 <section id="analytics" class="tab-pane">
                     <div class="section-header">
                         <div>
-                            <h2>Productivity & Study Analytics</h2>
-                            <p>Review your academic performance metrics and completed workload hours.</p>
+                            <h2>Productivity Analytics & Campus Leaderboard</h2>
+                            <p>Review study metrics and weekly community rankings.</p>
                         </div>
                     </div>
 
@@ -243,13 +308,12 @@
                             </div>
                         </div>
                         <div class="card">
-                            <h3><i class="fa-solid fa-fire"></i> Study Streak & Consistency</h3>
-                            <div class="streak-box">
-                                <i class="fa-solid fa-fire-flame-curved"></i>
-                                <div>
-                                    <h2 id="streakCount">5 Days</h2>
-                                    <p>Consistent daily tracking streak!</p>
-                                </div>
+                            <h3><i class="fa-solid fa-trophy"></i> Weekly Global Leaderboard</h3>
+                            <div class="leaderboard-list" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+                                <div class="leaderboard-row"><span>1. Sophia Chen</span> <strong>14.5 hrs</strong></div>
+                                <div class="leaderboard-row"><span>2. Marcus Vance</span> <strong>12.0 hrs</strong></div>
+                                <div class="leaderboard-row" style="background:var(--primary-light); padding:6px 10px; border-radius:8px;"><span>3. Alex Scholar (You)</span> <strong>9.5 hrs</strong></div>
+                                <div class="leaderboard-row"><span>4. Liam Gallagher</span> <strong>8.0 hrs</strong></div>
                             </div>
                         </div>
                     </div>
@@ -309,6 +373,24 @@
                     <button type="submit" class="btn-primary" id="saveTaskBtn">Save Task</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- SYLLABUS OCR / PDF IMPORT MODAL -->
+    <div class="modal-overlay" id="syllabusModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>AI Syllabus & PDF Importer</h3>
+                <button class="close-modal" id="closeSyllabusModalBtn">&times;</button>
+            </div>
+            <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:16px;">Paste your course syllabus text or upload your assignment schedule below to instantly extract tasks using our AI parser.</p>
+            <div class="form-group">
+                <textarea id="syllabusTextInput" class="form-control" rows="6" placeholder="Paste syllabus text here (e.g. 'Midterm Exam on Oct 25 for Chemistry 2 hrs worth 30%...')"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="cancelSyllabusBtn">Cancel</button>
+                <button type="button" class="btn-primary" id="processSyllabusBtn"><i class="fa-solid fa-wand-magic-sparkles"></i> Extract & Add Tasks</button>
+            </div>
         </div>
     </div>
 
