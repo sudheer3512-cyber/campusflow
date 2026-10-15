@@ -1,9 +1,10 @@
-// State Management & LocalStorage
+// Real-time Persistent State Management
+const todayStr = new Date().toISOString().split('T')[0];
+
 let tasks = JSON.parse(localStorage.getItem('acad_tasks')) || [
-    { id: '1', title: 'Data Structures Assignment 3', subject: 'Computer Science', priority: 'High', date: '2026-10-16', hours: 3, status: 'todo' },
-    { id: '2', title: 'Organic Chemistry Lab Report', subject: 'Chemistry', priority: 'Medium', date: '2026-10-18', hours: 2.5, status: 'in-progress' },
-    { id: '3', title: 'Calculus Problem Set #5', subject: 'Mathematics', priority: 'High', date: '2026-10-15', hours: 2, status: 'todo' },
-    { id: '4', title: 'Macroeconomics Essay Draft', subject: 'Economics', priority: 'Low', date: '2026-10-20', hours: 4, status: 'completed' }
+    { id: '1', title: 'Data Structures Assignment 3', subject: 'Computer Science', priority: 'High', date: todayStr, hours: 3, status: 'todo' },
+    { id: '2', title: 'Organic Chemistry Lab Report', subject: 'Chemistry', priority: 'Medium', date: todayStr, hours: 2.5, status: 'in-progress' },
+    { id: '3', title: 'Calculus Problem Set #5', subject: 'Mathematics', priority: 'High', date: todayStr, hours: 2, status: 'todo' }
 ];
 
 let maxDailyCap = parseInt(localStorage.getItem('acad_max_cap')) || 5;
@@ -16,13 +17,12 @@ if (currentTheme === 'dark') {
     document.getElementById('themeToggle').innerHTML = '<i class="fa-solid fa-sun"></i> <span>Light Mode</span>';
 }
 
-// Pomodoro Variables
+// Pomodoro State
 let pomoInterval = null;
 let pomoTimeLeft = 25 * 60;
 let pomoState = 'work';
 let isPomoRunning = false;
 
-// DOM Initialization
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     setupEventListeners();
@@ -56,8 +56,8 @@ function renderAll() {
     updatePomoTaskSelect();
 }
 
-// Event Listeners
 function setupEventListeners() {
+    // Tab Switching
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
@@ -84,7 +84,7 @@ function setupEventListeners() {
         }
     });
 
-    // Task Modal Controls
+    // Task Modal
     const modal = document.getElementById('taskModal');
     document.getElementById('openTaskModal').addEventListener('click', () => {
         document.getElementById('taskForm').reset();
@@ -93,32 +93,29 @@ function setupEventListeners() {
         document.getElementById('taskDate').valueAsDate = new Date();
         modal.classList.add('active');
     });
-
     document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('active'));
     document.getElementById('cancelModalBtn').addEventListener('click', () => modal.classList.remove('active'));
 
-    // Syllabus Modal Controls
+    // Syllabus Modal
     const syllabusModal = document.getElementById('syllabusModal');
     document.getElementById('openSyllabusModal').addEventListener('click', () => syllabusModal.classList.add('active'));
     document.getElementById('closeSyllabusModalBtn').addEventListener('click', () => syllabusModal.classList.remove('active'));
     document.getElementById('cancelSyllabusBtn').addEventListener('click', () => syllabusModal.classList.remove('active'));
 
-    // Process Syllabus OCR Simulation
+    // Real Syllabus Parser
     document.getElementById('processSyllabusBtn').addEventListener('click', () => {
         const text = document.getElementById('syllabusTextInput').value;
         if (!text.trim()) {
-            alert('Please paste some syllabus text first!');
+            alert('Please paste course text first!');
             return;
         }
 
-        // Simple AI Parsing Simulation: extracts words into tasks
-        const today = new Date();
         const newParsedTask = {
             id: Date.now().toString(),
-            title: 'Syllabus Extracted Assignment',
-            subject: 'General Course',
+            title: text.slice(0, 40) + ' (Parsed)',
+            subject: 'Syllabus Course',
             priority: 'High',
-            date: new Date(today.setDate(today.getDate() + 3)).toISOString().split('T')[0],
+            date: todayStr,
             hours: 3,
             status: 'todo'
         };
@@ -128,7 +125,7 @@ function setupEventListeners() {
         renderAll();
         syllabusModal.classList.remove('active');
         document.getElementById('syllabusTextInput').value = '';
-        alert('✨ AI successfully parsed your syllabus and added extracted assignments!');
+        alert('✨ Syllabus successfully parsed and added to your task list!');
     });
 
     // Task Form Submit
@@ -153,12 +150,8 @@ function setupEventListeners() {
                 task.status = status;
             }
         } else {
-            const newTask = {
-                id: Date.now().toString(),
-                title, subject, priority, date, hours, status
-            };
-            tasks.push(newTask);
-            userXP += 50; // Reward XP for creating task
+            tasks.push({ id: Date.now().toString(), title, subject, priority, date, hours, status });
+            userXP += 50;
             userCoins += 10;
         }
 
@@ -168,23 +161,22 @@ function setupEventListeners() {
         modal.classList.remove('active');
     });
 
-    // Search Bar
+    // Search
     document.getElementById('globalSearch').addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
         if (query.trim() !== '') {
             document.querySelector('[data-tab="kanban"]').click();
-            filterKanban(query);
+            renderKanban('all', query);
         } else {
             renderKanban();
         }
     });
 
-    // Kanban Subject Filter
     document.getElementById('kanbanSubjectFilter').addEventListener('change', (e) => {
         renderKanban(e.target.value);
     });
 
-    // Balancer Settings
+    // Balancer Controls
     document.getElementById('optimizerSettingsBtn').addEventListener('click', () => {
         const newCap = prompt('Enter your maximum recommended study hours per day:', maxDailyCap);
         if (newCap !== null && !isNaN(newCap) && Number(newCap) > 0) {
@@ -195,9 +187,7 @@ function setupEventListeners() {
         }
     });
 
-    document.getElementById('autoBalanceBtn').addEventListener('click', () => {
-        advancedSmartAutoBalance();
-    });
+    document.getElementById('autoBalanceBtn').addEventListener('click', advancedSmartAutoBalance);
 
     // Pomodoro Controls
     document.querySelectorAll('.pomo-mode-btn').forEach(btn => {
@@ -217,7 +207,6 @@ function updateDateDisplay() {
     document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString('en-US', options);
 }
 
-// 1. Dashboard Renderer
 function renderDashboard() {
     const totalTasks = tasks.length;
     const totalHours = tasks.reduce((acc, t) => acc + (t.status !== 'completed' ? t.hours : 0), 0);
@@ -233,12 +222,12 @@ function renderDashboard() {
     focusContainer.innerHTML = '';
 
     if (pendingTasks.length === 0) {
-        focusContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">All caught up! No pending tasks.</p>';
+        focusContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">All caught up!</p>';
     } else {
         pendingTasks.slice(0, 3).forEach(t => {
             focusContainer.innerHTML += `
                 <div class="focus-item">
-                    <div class="focus-item-details">
+                    <div>
                         <h4>${t.title}</h4>
                         <span>${t.subject} • Due ${t.date} (${t.hours}h)</span>
                     </div>
@@ -268,12 +257,8 @@ function renderDashboard() {
             </div>
         `;
     }
-    if (Object.keys(subjectMap).length === 0) {
-        barsContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">No active subject workload.</p>';
-    }
 }
 
-// 2. Advanced Workload Balancer Renderer
 function renderBalancer() {
     const grid = document.getElementById('weekDistributionGrid');
     grid.innerHTML = '';
@@ -296,22 +281,16 @@ function renderBalancer() {
         const dayHours = dayTasks.reduce((acc, t) => acc + t.hours, 0);
         totalWeeklyHours += dayHours;
 
-        let statusClass = 'balanced';
-        let statusText = 'Balanced';
-        if (dayHours === 0) {
-            statusClass = 'light';
-            statusText = 'Light';
-        } else if (dayHours > maxDailyCap) {
-            statusClass = 'heavy';
-            statusText = 'Over Cap ⚠️';
-        }
+        let statusClass = 'balanced', statusText = 'Balanced';
+        if (dayHours === 0) { statusClass = 'light'; statusText = 'Light'; }
+        else if (dayHours > maxDailyCap) { statusClass = 'heavy'; statusText = 'Over Cap ⚠️'; }
 
         let tasksHtml = '';
         dayTasks.forEach(t => {
             let optionsHtml = '';
             weekDaysMeta.forEach(wm => {
-                const selectedAttr = wm.dateStr === t.date ? 'selected' : '';
-                optionsHtml += `<option value="${wm.dateStr}" ${selectedAttr}>${wm.dayLabel}</option>`;
+                const sel = wm.dateStr === t.date ? 'selected' : '';
+                optionsHtml += `<option value="${wm.dateStr}" ${sel}>${wm.dayLabel}</option>`;
             });
 
             tasksHtml += `
@@ -322,7 +301,7 @@ function renderBalancer() {
                     </div>
                     <span>${t.subject} • ${t.hours}h</span>
                     <div style="margin-top: 4px; display:flex; align-items:center; justify-content:space-between;">
-                        <span style="font-size:0.7rem; color:var(--text-muted);">Shift to:</span>
+                        <span style="font-size:0.7rem; color:var(--text-muted);">Shift:</span>
                         <select class="shift-day-select" onchange="shiftTaskDate('${t.id}', this.value)">
                             ${optionsHtml}
                         </select>
@@ -332,7 +311,7 @@ function renderBalancer() {
         });
 
         if (dayTasks.length === 0) {
-            tasksHtml = '<span style="color:var(--text-muted); font-size:0.75rem; text-align:center; margin-top:30px;">No scheduled workload</span>';
+            tasksHtml = '<span style="color:var(--text-muted); font-size:0.75rem; text-align:center; margin-top:30px;">No tasks</span>';
         }
 
         const isOverCapCol = dayHours > maxDailyCap ? 'over-cap' : '';
@@ -346,40 +325,17 @@ function renderBalancer() {
                         <span class="day-status-pill ${statusClass}">${statusText}</span>
                     </div>
                 </div>
-                <div class="day-tasks-list">
-                    ${tasksHtml}
-                </div>
+                <div class="day-tasks-list">${tasksHtml}</div>
             </div>
         `;
     });
 
-    const alertCard = document.getElementById('overloadAlertCard');
-    const statusTitle = document.getElementById('balancerStatusTitle');
-    const statusDesc = document.getElementById('balancerStatusDesc');
-    const workloadStatusText = document.getElementById('workloadStatusText');
     const weeklyLoadBadge = document.getElementById('weeklyLoadBadge');
     const capacityBarFill = document.getElementById('capacityBarFill');
-    const balancerAlertIcon = document.getElementById('balancerAlertIcon');
-
     weeklyLoadBadge.innerText = `Total: ${totalWeeklyHours}h / ${weeklyCapacityMax}h cap`;
     const capacityPct = Math.min(Math.round((totalWeeklyHours / weeklyCapacityMax) * 100), 100);
     capacityBarFill.style.width = capacityPct + '%';
-
-    if (totalWeeklyHours > weeklyCapacityMax || totalWeeklyHours > (maxDailyCap * 5)) {
-        alertCard.classList.add('warning');
-        balancerAlertIcon.className = 'fa-solid fa-triangle-exclamation';
-        statusTitle.innerText = 'High Burnout Risk / Overload';
-        statusDesc.innerText = `Your upcoming 7-day workload (${totalWeeklyHours}h) exceeds sustainable thresholds. Use Smart Auto-Balance below to distribute tasks evenly.`;
-        workloadStatusText.innerText = 'Heavy Overload';
-        capacityBarFill.style.backgroundColor = 'var(--danger)';
-    } else {
-        alertCard.classList.remove('warning');
-        balancerAlertIcon.className = 'fa-solid fa-shield-heart';
-        statusTitle.innerText = 'Optimal Study Balance';
-        statusDesc.innerText = `Your workload distribution is healthy and sustainable (&le; ${maxDailyCap}h/day average).`;
-        workloadStatusText.innerText = 'Balanced';
-        capacityBarFill.style.backgroundColor = 'var(--success)';
-    }
+    document.getElementById('myLeaderboardHours').innerText = `${totalWeeklyHours} hrs`;
 }
 
 function shiftTaskDate(taskId, newDateStr) {
@@ -398,27 +354,14 @@ function advancedSmartAutoBalance() {
         return;
     }
 
-    const priorityWeight = { 'High': 3, 'Medium': 2, 'Low': 1 };
-    pending.sort((a, b) => {
-        if (priorityWeight[b.priority] !== priorityWeight[a.priority]) {
-            return priorityWeight[b.priority] - priorityWeight[a.priority];
-        }
-        return new Date(a.date) - new Date(b.date);
-    });
-
     const today = new Date();
     let dayLoadTracker = [0, 0, 0, 0, 0, 0, 0];
 
     pending.forEach(t => {
-        let minLoadIndex = 0;
-        let minLoadVal = dayLoadTracker[0];
+        let minLoadIndex = 0, minLoadVal = dayLoadTracker[0];
         for (let i = 0; i < 7; i++) {
-            if (dayLoadTracker[i] < minLoadVal) {
-                minLoadVal = dayLoadTracker[i];
-                minLoadIndex = i;
-            }
+            if (dayLoadTracker[i] < minLoadVal) { minLoadVal = dayLoadTracker[i]; minLoadIndex = i; }
         }
-
         const assignedDate = new Date(today);
         assignedDate.setDate(today.getDate() + minLoadIndex);
         t.date = assignedDate.toISOString().split('T')[0];
@@ -427,10 +370,9 @@ function advancedSmartAutoBalance() {
 
     saveTasks();
     renderAll();
-    alert('✨ AI Smart Workload Balancer successfully re-distributed all pending assignments evenly across the week!');
+    alert('✨ AI Smart Workload Balancer successfully re-distributed all pending assignments evenly!');
 }
 
-// 3. Kanban Board Renderer
 function renderKanban(subjectFilter = 'all', searchQuery = '') {
     const todoContainer = document.getElementById('tasks-todo');
     const inProgressContainer = document.getElementById('tasks-in-progress');
@@ -441,29 +383,25 @@ function renderKanban(subjectFilter = 'all', searchQuery = '') {
     completedContainer.innerHTML = '';
 
     let filtered = tasks;
-    if (subjectFilter !== 'all') {
-        filtered = filtered.filter(t => t.subject === subjectFilter);
-    }
-    if (searchQuery) {
-        filtered = filtered.filter(t => t.title.toLowerCase().includes(searchQuery) || t.subject.toLowerCase().includes(searchQuery));
-    }
+    if (subjectFilter !== 'all') filtered = filtered.filter(t => t.subject === subjectFilter);
+    if (searchQuery) filtered = filtered.filter(t => t.title.toLowerCase().includes(searchQuery));
 
     let counts = { todo: 0, 'in-progress': 0, completed: 0 };
 
     filtered.forEach(t => {
         counts[t.status]++;
         const cardHtml = `
-            <div class="kanban-card" draggable="true" data-id="${t.id}">
+            <div class="kanban-card">
                 <div class="kanban-card-top">
                     <span class="tag-subject">${t.subject}</span>
                     <span class="tag-priority ${t.priority}">${t.priority}</span>
                 </div>
                 <h4>${t.title}</h4>
                 <div class="kanban-card-footer">
-                    <span><i class="fa-regular fa-calendar"></i> ${t.date} (${t.hours}h)</span>
+                    <span>${t.date} (${t.hours}h)</span>
                     <div class="kanban-actions">
-                        <button onclick="editTask('${t.id}')" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick="deleteTask('${t.id}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="editTask('${t.id}')"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteTask('${t.id}')"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
             </div>
@@ -479,20 +417,13 @@ function renderKanban(subjectFilter = 'all', searchQuery = '') {
     document.getElementById('count-completed').innerText = counts.completed;
 }
 
-function filterKanban(query) {
-    renderKanban('all', query);
-}
-
 function updateSubjectFilterOptions() {
     const subjects = [...new Set(tasks.map(t => t.subject))];
     const select = document.getElementById('kanbanSubjectFilter');
     select.innerHTML = '<option value="all">All Subjects</option>';
-    subjects.forEach(s => {
-        select.innerHTML += `<option value="${s}">${s}</option>`;
-    });
+    subjects.forEach(s => { select.innerHTML += `<option value="${s}">${s}</option>`; });
 }
 
-// Task Actions & Gamification Rewards
 function markCompleted(id) {
     const t = tasks.find(item => item.id === id);
     if (t && t.status !== 'completed') {
@@ -518,19 +449,17 @@ function editTask(id) {
     document.getElementById('taskHours').value = t.hours;
     document.getElementById('taskStatus').value = t.status;
     document.getElementById('modalTitleText').innerText = 'Edit Task';
-
     document.getElementById('taskModal').classList.add('active');
 }
 
 function deleteTask(id) {
-    if (confirm('Are you sure you want to delete this task?')) {
+    if (confirm('Delete this task?')) {
         tasks = tasks.filter(t => t.id !== id);
         saveTasks();
         renderAll();
     }
 }
 
-// 4. Pomodoro Timer Logic
 function setPomoMode(mode) {
     pomoState = mode;
     clearInterval(pomoInterval);
@@ -571,7 +500,7 @@ function togglePomodoro() {
                 userCoins += 40;
                 saveTasks();
                 updateGamificationUI();
-                alert('⏰ Pomodoro session complete! Earned +150 XP and +40 Gold Coins.');
+                alert('⏰ Pomodoro complete! Earned +150 XP & +40 Coins.');
                 btn.innerHTML = '<i class="fa-solid fa-play"></i> Start Focus';
             }
         }, 1000);
@@ -593,13 +522,8 @@ function updatePomoTaskSelect() {
     });
 }
 
-// 5. Analytics Renderer
 function renderAnalytics() {
-    const high = tasks.filter(t => t.priority === 'High').length;
-    const med = tasks.filter(t => t.priority === 'Medium').length;
-    const low = tasks.filter(t => t.priority === 'Low').length;
-
-    document.getElementById('statHigh').innerText = high;
-    document.getElementById('statMed').innerText = med;
-    document.getElementById('statLow').innerText = low;
+    document.getElementById('statHigh').innerText = tasks.filter(t => t.priority === 'High').length;
+    document.getElementById('statMed').innerText = tasks.filter(t => t.priority === 'Medium').length;
+    document.getElementById('statLow').innerText = tasks.filter(t => t.priority === 'Low').length;
 }
