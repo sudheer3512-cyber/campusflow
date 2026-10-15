@@ -5,8 +5,6 @@ let tasks = JSON.parse(localStorage.getItem('acad_tasks')) || [
     { id: '2', title: 'Organic Chemistry Lab Report', subject: 'Chemistry', priority: 'Medium', date: todayStr, hours: 2.5, status: 'in-progress' }
 ];
 
-let geminiApiKey = localStorage.getItem('acad_gemini_key') || '';
-let maxDailyCap = parseInt(localStorage.getItem('acad_max_cap')) || 5;
 let userXP = parseInt(localStorage.getItem('acad_xp')) || 450;
 let userCoins = parseInt(localStorage.getItem('acad_coins')) || 120;
 
@@ -16,19 +14,19 @@ if (currentTheme === 'dark') {
     document.getElementById('themeToggle').innerHTML = '<i class="fa-solid fa-sun"></i> <span>Light Mode</span>';
 }
 
-// PeerJS Real P2P Setup
+// WebRTC PeerJS & Media Streams
 let peer = null;
-let connectedPeers = [];
+let localStream = null;
+let activeConnection = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     setupEventListeners();
-    initPeerJS();
+    initWebRTCVideoRoom();
 });
 
 function initApp() {
     updateDateDisplay();
-    document.getElementById('maxCapDisplay').innerText = maxDailyCap;
     updateGamificationUI();
     renderAll();
 }
@@ -51,8 +49,6 @@ function renderAll() {
     renderKanban();
     renderGPA();
     renderAnalytics();
-    updateSubjectFilterOptions();
-    updatePomoTaskSelect();
 }
 
 function setupEventListeners() {
@@ -81,20 +77,6 @@ function setupEventListeners() {
         }
     });
 
-    // API Key Modal
-    const apiKeyModal = document.getElementById('apiKeyModal');
-    document.getElementById('openApiKeyModal').addEventListener('click', () => apiKeyModal.classList.add('active'));
-    document.getElementById('closeApiKeyModalBtn').addEventListener('click', () => apiKeyModal.classList.remove('active'));
-    document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
-        const key = document.getElementById('geminiApiKeyInput').value.trim();
-        if (key) {
-            geminiApiKey = key;
-            localStorage.setItem('acad_gemini_key', key);
-            apiKeyModal.classList.remove('active');
-            alert('✨ Gemini API Key successfully saved!');
-        }
-    });
-
     // Task Modal
     const modal = document.getElementById('taskModal');
     document.getElementById('openTaskModal').addEventListener('click', () => {
@@ -107,70 +89,6 @@ function setupEventListeners() {
     document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('active'));
     document.getElementById('cancelModalBtn').addEventListener('click', () => modal.classList.remove('active'));
 
-    // Syllabus Modal
-    const syllabusModal = document.getElementById('syllabusModal');
-    document.getElementById('openSyllabusModal').addEventListener('click', () => syllabusModal.classList.add('active'));
-    document.getElementById('closeSyllabusModalBtn').addEventListener('click', () => syllabusModal.classList.remove('active'));
-    document.getElementById('cancelSyllabusBtn').addEventListener('click', () => syllabusModal.classList.remove('active'));
-
-    // REAL GEMINI AI SYLLABUS PARSER
-    document.getElementById('processRealAiSyllabusBtn').addEventListener('click', async () => {
-        if (!geminiApiKey) {
-            alert('Please set your Gemini API Key first using the top bar button!');
-            apiKeyModal.classList.add('active');
-            return;
-        }
-
-        const text = document.getElementById('syllabusTextInput').value.trim();
-        if (!text) {
-            alert('Please paste syllabus text!');
-            return;
-        }
-
-        alert('🤖 Connecting to Gemini AI to parse syllabus...');
-
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: `Extract assignments and tasks from this syllabus text and return ONLY a valid JSON array where each object has keys: title (string), subject (string), priority (High/Medium/Low), hours (number). Syllabus text: ${text}`
-                        }]
-                    }]
-                })
-            });
-
-            const data = await response.json();
-            const rawText = data.candidates[0].content.parts[0].text;
-            const cleanedJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const parsedTasks = JSON.parse(cleanedJson);
-
-            parsedTasks.forEach(pt => {
-                tasks.push({
-                    id: Date.now().toString() + Math.random(),
-                    title: pt.title,
-                    subject: pt.subject || 'General',
-                    priority: pt.priority || 'Medium',
-                    date: todayStr,
-                    hours: pt.hours || 2,
-                    status: 'todo'
-                });
-            });
-
-            saveTasks();
-            renderAll();
-            syllabusModal.classList.remove('active');
-            document.getElementById('syllabusTextInput').value = '';
-            alert('✨ Gemini AI successfully extracted and added all tasks!');
-        } catch (err) {
-            console.error(err);
-            alert('Error calling Gemini AI. Please check your API key.');
-        }
-    });
-
-    // Task Form Submit
     document.getElementById('taskForm').addEventListener('submit', (e) => {
         e.preventDefault();
         const id = document.getElementById('taskId').value;
@@ -203,77 +121,105 @@ function setupEventListeners() {
         modal.classList.remove('active');
     });
 
-    document.getElementById('globalSearch').addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        if (query.trim() !== '') {
-            document.querySelector('[data-tab="kanban"]').click();
-            renderKanban('all', query);
-        } else {
-            renderKanban();
+    // Copy Peer ID Button
+    document.getElementById('copyIdBtn').addEventListener('click', () => {
+        const idInput = document.getElementById('myPeerIdInput');
+        idInput.select();
+        navigator.clipboard.writeText(idInput.value);
+        alert('Copied Peer ID to clipboard!');
+    });
+
+    // Call Peer Button
+    document.getElementById('callPeerBtn').addEventListener('click', () => {
+        const targetId = document.getElementById('targetPeerIdInput').value.trim();
+        if (!targetId) {
+            alert('Please enter a valid Peer ID to call.');
+            return;
+        }
+        if (peer && localStream) {
+            const call = peer.call(targetId, localStream);
+            call.on('stream', (remoteStream) => {
+                document.getElementById('remoteVideo').srcObject = remoteStream;
+            });
+
+            // Also open data connection for chat
+            activeConnection = peer.connect(targetId);
+            setupDataConnection();
+            alert('Calling peer...');
         }
     });
 
-    document.getElementById('kanbanSubjectFilter').addEventListener('change', (e) => {
-        renderKanban(e.target.value);
+    // Send Chat
+    document.getElementById('sendChatBtn').addEventListener('click', sendRoomMessage);
+}
+
+// WEBRTC VIDEO & DATA INITIALIZATION
+async function initWebRTCVideoRoom() {
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById('localVideo').srcObject = localStream;
+    } catch (err) {
+        console.error('Webcam access error:', err);
+        alert('Could not access webcam/microphone. Please check browser permissions.');
+    }
+
+    peer = new Peer();
+    peer.on('open', (id) => {
+        document.getElementById('myPeerIdInput').value = id;
     });
 
-    document.getElementById('optimizerSettingsBtn').addEventListener('click', () => {
-        const newCap = prompt('Enter max daily study hours cap:', maxDailyCap);
-        if (newCap !== null && !isNaN(newCap) && Number(newCap) > 0) {
-            maxDailyCap = Number(newCap);
-            localStorage.setItem('acad_max_cap', maxDailyCap);
-            document.getElementById('maxCapDisplay').innerText = maxDailyCap;
-            renderBalancer();
-        }
-    });
-
-    document.getElementById('autoBalanceBtn').addEventListener('click', realAIAutoBalanceEngine);
-
-    document.getElementById('connectPeerBtn').addEventListener('click', () => {
-        const peerId = document.getElementById('joinPeerIdInput').value.trim();
-        if (peerId && peer) {
-            const conn = peer.connect(peerId);
-            conn.on('open', () => {
-                connectedPeers.push(conn);
-                alert('Successfully connected to peer!');
-                renderPeers();
+    // Receive incoming calls
+    peer.on('call', (call) => {
+        if (confirm('Incoming video call from study peer! Accept?')) {
+            call.answer(localStream);
+            call.on('stream', (remoteStream) => {
+                document.getElementById('remoteVideo').srcObject = remoteStream;
             });
         }
     });
+
+    // Receive incoming chat data connections
+    peer.on('connection', (conn) => {
+        activeConnection = conn;
+        setupDataConnection();
+        appendChatSystemMessage('A peer connected to your room!');
+    });
+}
+
+function setupDataConnection() {
+    if (!activeConnection) return;
+    activeConnection.on('data', (data) => {
+        appendChatMessage(data.sender, data.text);
+    });
+}
+
+function sendRoomMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    appendChatMessage('You', text);
+    if (activeConnection && activeConnection.open) {
+        activeConnection.send({ sender: 'Study Peer', text: text });
+    }
+    input.value = '';
+}
+
+function appendChatMessage(sender, text) {
+    const box = document.getElementById('chatMessages');
+    box.innerHTML += `<div><strong>${sender}:</strong> ${text}</div>`;
+    box.scrollTop = box.scrollHeight;
+}
+
+function appendChatSystemMessage(text) {
+    const box = document.getElementById('chatMessages');
+    box.innerHTML += `<div style="color: var(--primary); font-style: italic;">${text}</div>`;
+    box.scrollTop = box.scrollHeight;
 }
 
 function updateDateDisplay() {
     const options = { month: 'short', day: 'numeric', year: 'numeric' };
     document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString('en-US', options);
-}
-
-// REAL P2P WEBRTC (PEERJS)
-function initPeerJS() {
-    peer = new Peer();
-    peer.on('open', (id) => {
-        document.getElementById('myPeerIdDisplay').innerText = id;
-    });
-    peer.on('connection', (conn) => {
-        connectedPeers.push(conn);
-        alert(`A peer connected to your study session: ${conn.peer}`);
-        renderPeers();
-    });
-}
-
-function renderPeers() {
-    const grid = document.getElementById('p2pPeersGrid');
-    grid.innerHTML = '';
-    connectedPeers.forEach(cp => {
-        grid.innerHTML += `
-            <div class="card">
-                <h3><i class="fa-solid fa-circle" style="color:var(--success); font-size:0.7rem;"></i> Connected Peer</h3>
-                <p style="font-size:0.85rem; color:var(--text-muted); margin-top:6px;">Peer ID: ${cp.peer}</p>
-            </div>
-        `;
-    });
-    if (connectedPeers.length === 0) {
-        grid.innerHTML = '<p style="color:var(--text-muted);">No peers connected yet. Share your Peer ID with a friend!</p>';
-    }
 }
 
 function renderDashboard() {
@@ -331,145 +277,41 @@ function renderDashboard() {
 function renderBalancer() {
     const grid = document.getElementById('weekDistributionGrid');
     grid.innerHTML = '';
-
     const today = new Date();
-    let totalWeeklyHours = 0;
-    const weeklyCapacityMax = maxDailyCap * 7;
 
-    let weekDaysMeta = [];
     for (let i = 0; i < 7; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() + i);
         const dateStr = d.toISOString().split('T')[0];
         const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        weekDaysMeta.push({ dateStr, dayLabel });
-    }
 
-    weekDaysMeta.forEach((meta) => {
-        const dayTasks = tasks.filter(t => t.date === meta.dateStr && t.status !== 'completed');
+        const dayTasks = tasks.filter(t => t.date === dateStr && t.status !== 'completed');
         const dayHours = dayTasks.reduce((acc, t) => acc + t.hours, 0);
-        totalWeeklyHours += dayHours;
-
-        let statusClass = 'balanced', statusText = 'Balanced';
-        if (dayHours === 0) { statusClass = 'light'; statusText = 'Light'; }
-        else if (dayHours > maxDailyCap) { statusClass = 'heavy'; statusText = 'Over Cap ⚠️'; }
 
         let tasksHtml = '';
         dayTasks.forEach(t => {
-            let optionsHtml = '';
-            weekDaysMeta.forEach(wm => {
-                const sel = wm.dateStr === t.date ? 'selected' : '';
-                optionsHtml += `<option value="${wm.dateStr}" ${sel}>${wm.dayLabel}</option>`;
-            });
-
             tasksHtml += `
-                <div class="advanced-task-pill" draggable="true" ondragstart="dragTask(event, '${t.id}')">
-                    <div class="advanced-task-top">
-                        <strong>${t.title}</strong>
-                        <span class="tag-priority ${t.priority}">${t.priority}</span>
-                    </div>
+                <div class="advanced-task-pill">
+                    <strong>${t.title}</strong>
                     <span>${t.subject} • ${t.hours}h</span>
-                    <div style="margin-top: 4px; display:flex; align-items:center; justify-content:space-between;">
-                        <span style="font-size:0.7rem; color:var(--text-muted);">Shift:</span>
-                        <select class="shift-day-select" onchange="shiftTaskDate('${t.id}', this.value)">
-                            ${optionsHtml}
-                        </select>
-                    </div>
                 </div>
             `;
         });
-
-        if (dayTasks.length === 0) {
-            tasksHtml = '<span style="color:var(--text-muted); font-size:0.75rem; text-align:center; margin-top:30px;">No tasks</span>';
-        }
-
-        const isOverCapCol = dayHours > maxDailyCap ? 'over-cap' : '';
+        if (dayTasks.length === 0) tasksHtml = '<span style="color:var(--text-muted); font-size:0.75rem;">No tasks</span>';
 
         grid.innerHTML += `
-            <div class="day-column ${isOverCapCol}" ondragover="allowDrop(event)" ondrop="dropBalancerTask(event, '${meta.dateStr}')">
+            <div class="day-column">
                 <div class="day-header">
-                    <h4>${meta.dayLabel}</h4>
-                    <div class="day-meta-info">
-                        <span>${dayHours}h load</span>
-                        <span class="day-status-pill ${statusClass}">${statusText}</span>
-                    </div>
+                    <h4>${dayLabel}</h4>
+                    <span>${dayHours}h load</span>
                 </div>
                 <div class="day-tasks-list">${tasksHtml}</div>
             </div>
         `;
-    });
-
-    const weeklyLoadBadge = document.getElementById('weeklyLoadBadge');
-    const capacityBarFill = document.getElementById('capacityBarFill');
-    weeklyLoadBadge.innerText = `Total: ${totalWeeklyHours}h / ${weeklyCapacityMax}h cap`;
-    const capacityPct = Math.min(Math.round((totalWeeklyHours / weeklyCapacityMax) * 100), 100);
-    capacityBarFill.style.width = capacityPct + '%';
-}
-
-function shiftTaskDate(taskId, newDateStr) {
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-        task.date = newDateStr;
-        saveTasks();
-        renderAll();
     }
 }
 
-function realAIAutoBalanceEngine() {
-    const pending = tasks.filter(t => t.status !== 'completed');
-    if (pending.length === 0) {
-        alert('No pending tasks to balance!');
-        return;
-    }
-
-    const priorityWeight = { 'High': 3, 'Medium': 2, 'Low': 1 };
-    pending.sort((a, b) => priorityWeight[b.priority] - priorityWeight[a.priority]);
-
-    const today = new Date();
-    let dayLoadTracker = [0, 0, 0, 0, 0, 0, 0];
-
-    pending.forEach(t => {
-        let minLoadIndex = 0, minLoadVal = dayLoadTracker[0];
-        for (let i = 0; i < 7; i++) {
-            if (dayLoadTracker[i] < minLoadVal) { minLoadVal = dayLoadTracker[i]; minLoadIndex = i; }
-        }
-        const assignedDate = new Date(today);
-        assignedDate.setDate(today.getDate() + minLoadIndex);
-        t.date = assignedDate.toISOString().split('T')[0];
-        dayLoadTracker[minLoadIndex] += t.hours;
-    });
-
-    saveTasks();
-    renderAll();
-    alert('✨ AI Balancer Engine successfully optimized your workload!');
-}
-
-function allowDrop(ev) { ev.preventDefault(); }
-function dragTask(ev, id) { ev.dataTransfer.setData('text/plain', id); }
-
-function dropTask(ev, newStatus) {
-    ev.preventDefault();
-    const id = ev.dataTransfer.getData('text/plain');
-    const task = tasks.find(t => t.id === id);
-    if (task) {
-        task.status = newStatus;
-        if (newStatus === 'completed') {
-            userXP += 100;
-            userCoins += 25;
-            updateGamificationUI();
-        }
-        saveTasks();
-        renderAll();
-    }
-}
-
-function dropBalancerTask(ev, dateStr) {
-    ev.preventDefault();
-    const id = ev.dataTransfer.getData('text/plain');
-    shiftTaskDate(id, dateStr);
-}
-
-function renderKanban(subjectFilter = 'all', searchQuery = '') {
+function renderKanban() {
     const todoContainer = document.getElementById('tasks-todo');
     const inProgressContainer = document.getElementById('tasks-in-progress');
     const completedContainer = document.getElementById('tasks-completed');
@@ -478,31 +320,16 @@ function renderKanban(subjectFilter = 'all', searchQuery = '') {
     inProgressContainer.innerHTML = '';
     completedContainer.innerHTML = '';
 
-    let filtered = tasks;
-    if (subjectFilter !== 'all') filtered = filtered.filter(t => t.subject === subjectFilter);
-    if (searchQuery) filtered = filtered.filter(t => t.title.toLowerCase().includes(searchQuery));
-
     let counts = { todo: 0, 'in-progress': 0, completed: 0 };
 
-    filtered.forEach(t => {
+    tasks.forEach(t => {
         counts[t.status]++;
         const cardHtml = `
-            <div class="kanban-card" draggable="true" ondragstart="dragTask(event, '${t.id}')">
-                <div class="kanban-card-top">
-                    <span class="tag-subject">${t.subject}</span>
-                    <span class="tag-priority ${t.priority}">${t.priority}</span>
-                </div>
+            <div class="kanban-card">
                 <h4>${t.title}</h4>
-                <div class="kanban-card-footer">
-                    <span>${t.date} (${t.hours}h)</span>
-                    <div class="kanban-actions">
-                        <button onclick="editTask('${t.id}')"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick="deleteTask('${t.id}')"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
+                <span style="font-size:0.8rem; color:var(--text-muted);">${t.subject} (${t.hours}h)</span>
             </div>
         `;
-
         if (t.status === 'todo') todoContainer.innerHTML += cardHtml;
         else if (t.status === 'in-progress') inProgressContainer.innerHTML += cardHtml;
         else if (t.status === 'completed') completedContainer.innerHTML += cardHtml;
@@ -513,11 +340,9 @@ function renderKanban(subjectFilter = 'all', searchQuery = '') {
     document.getElementById('count-completed').innerText = counts.completed;
 }
 
-function updateSubjectFilterOptions() {
-    const subjects = [...new Set(tasks.map(t => t.subject))];
-    const select = document.getElementById('kanbanSubjectFilter');
-    select.innerHTML = '<option value="all">All Courses</option>';
-    subjects.forEach(s => { select.innerHTML += `<option value="${s}">${s}</option>`; });
+function allowDrop(ev) { ev.preventDefault(); }
+function dropTask(ev, newStatus) {
+    // Basic kanban drop stub
 }
 
 function markCompleted(id) {
@@ -533,114 +358,15 @@ function markCompleted(id) {
     }
 }
 
-function editTask(id) {
-    const t = tasks.find(item => item.id === id);
-    if (!t) return;
-    document.getElementById('taskId').value = t.id;
-    document.getElementById('taskTitle').value = t.title;
-    document.getElementById('taskSubject').value = t.subject;
-    document.getElementById('taskPriority').value = t.priority;
-    document.getElementById('taskDate').value = t.date;
-    document.getElementById('taskHours').value = t.hours;
-    document.getElementById('taskStatus').value = t.status;
-    document.getElementById('modalTitleText').innerText = 'Edit Task';
-    document.getElementById('taskModal').classList.add('active');
-}
-
-function deleteTask(id) {
-    if (confirm('Delete this task?')) {
-        tasks = tasks.filter(t => t.id !== id);
-        saveTasks();
-        renderAll();
-    }
-}
-
 function renderGPA() {
     const totalHours = tasks.reduce((acc, t) => acc + t.hours, 1);
     const completedHours = tasks.filter(t => t.status === 'completed').reduce((acc, t) => acc + t.hours, 0);
     const ratio = completedHours / totalHours;
-    const simulatedGPA = (3.2 + (ratio * 0.8)).toFixed(2);
-    document.getElementById('currentCalculatedGPA').innerText = simulatedGPA;
-}
-
-// Pomodoro
-let pomoInterval = null;
-let pomoTimeLeft = 25 * 60;
-let pomoState = 'work';
-let isPomoRunning = false;
-
-function setPomoMode(mode) {
-    pomoState = mode;
-    clearInterval(pomoInterval);
-    isPomoRunning = false;
-    document.getElementById('startTimerBtn').innerHTML = '<i class="fa-solid fa-play"></i> Start Focus';
-
-    if (mode === 'work') pomoTimeLeft = 25 * 60;
-    else if (mode === 'shortBreak') pomoTimeLeft = 5 * 60;
-    else if (mode === 'longBreak') pomoTimeLeft = 15 * 60;
-
-    updateTimerDisplay();
-}
-
-function updateTimerDisplay() {
-    const mins = Math.floor(pomoTimeLeft / 60);
-    const secs = pomoTimeLeft % 60;
-    document.getElementById('timerMinutes').innerText = String(mins).padStart(2, '0');
-    document.getElementById('timerSeconds').innerText = String(secs).padStart(2, '0');
-}
-
-function togglePomodoro() {
-    const btn = document.getElementById('startTimerBtn');
-    if (isPomoRunning) {
-        clearInterval(pomoInterval);
-        isPomoRunning = false;
-        btn.innerHTML = '<i class="fa-solid fa-play"></i> Start Focus';
-    } else {
-        isPomoRunning = true;
-        btn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
-        pomoInterval = setInterval(() => {
-            if (pomoTimeLeft > 0) {
-                pomoTimeLeft--;
-                updateTimerDisplay();
-            } else {
-                clearInterval(pomoInterval);
-                isPomoRunning = false;
-                userXP += 150;
-                userCoins += 40;
-                saveTasks();
-                updateGamificationUI();
-                alert('⏰ Pomodoro complete! Earned +150 XP & +40 Coins.');
-                btn.innerHTML = '<i class="fa-solid fa-play"></i> Start Focus';
-            }
-        }, 1000);
-    }
-}
-
-function resetPomodoro() {
-    clearInterval(pomoInterval);
-    isPomoRunning = false;
-    document.getElementById('startTimerBtn').innerHTML = '<i class="fa-solid fa-play"></i> Start Focus';
-    setPomoMode(pomoState);
-}
-
-function updatePomoTaskSelect() {
-    const select = document.getElementById('pomoTaskSelect');
-    select.innerHTML = '<option value="">-- None --</option>';
-    tasks.filter(t => t.status !== 'completed').forEach(t => {
-        select.innerHTML += `<option value="${t.id}">${t.title} (${t.subject})</option>`;
-    });
+    document.getElementById('currentCalculatedGPA').innerText = (3.2 + (ratio * 0.8)).toFixed(2);
 }
 
 function renderAnalytics() {
     document.getElementById('statHigh').innerText = tasks.filter(t => t.priority === 'High').length;
     document.getElementById('statMed').innerText = tasks.filter(t => t.priority === 'Medium').length;
     document.getElementById('statLow').innerText = tasks.filter(t => t.priority === 'Low').length;
-
-    const totalHours = tasks.reduce((acc, t) => acc + (t.status !== 'completed' ? t.hours : 0), 0);
-    const lbContainer = document.getElementById('leaderboardListContainer');
-    lbContainer.innerHTML = `
-        <div class="leaderboard-row"><span>1. Sophia Chen</span> <strong>14.5 hrs</strong></div>
-        <div class="leaderboard-row"><span>2. Marcus Vance</span> <strong>12.0 hrs</strong></div>
-        <div class="leaderboard-row" style="background:var(--primary-light); padding:6px 10px; border-radius:8px;"><span>3. Alex Scholar (You)</span> <strong>${totalHours} hrs</strong></div>
-    `;
 }
